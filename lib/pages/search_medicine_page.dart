@@ -15,18 +15,6 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
-class SearchMedicinePage extends StatefulWidget {
-  const SearchMedicinePage({super.key});
-
-  @override
-  State<SearchMedicinePage> createState() => _SearchMedicinePageState();
-}
-
-class _SearchMedicinePageState extends State<SearchMedicinePage> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
           child: Padding(
@@ -63,9 +51,6 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
             ),
           ),
       ),
-    );
-  }
-}
 
       //Bottom NavBar
       bottomNavigationBar: NavigationBar(
@@ -121,7 +106,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
               label: ""
           ),
         ],
-      ),
+      )
     );
   }
 }
