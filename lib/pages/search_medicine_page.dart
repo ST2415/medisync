@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
 import 'package:medisync/pages/homepage_page.dart';
 import 'package:medisync/pages/history_table_list_page.dart';
 import 'package:medisync/pages/appointment_list_page.dart';
