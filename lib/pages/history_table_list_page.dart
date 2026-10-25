@@ -3,6 +3,23 @@ import 'package:medisync/pages/homepage_page.dart';
 import 'package:medisync/pages/search_medicine_page.dart';
 import 'package:medisync/pages/appointment_list_page.dart';
 
+
+class MedicineTrack {
+  final String dayName;
+  bool morning;
+  bool afternoon;
+  bool evening;
+  bool beforeSleep;
+
+  MedicineTrack({
+    required this.dayName,
+    this.morning = false,
+    this.afternoon = false,
+    this.evening = false,
+    this.beforeSleep = false,
+  });
+}
+
 class HistoryTableListPage extends StatefulWidget {
   const HistoryTableListPage({super.key});
 
@@ -11,17 +28,92 @@ class HistoryTableListPage extends StatefulWidget {
 }
 
 class _HistoryTableListPageState extends State<HistoryTableListPage> {
-  int currentPageIndex = 0;
+  String dropdownvalue = 'สัปดาห์นี้';
+  var items = [
+    'สัปดาห์นี้',
+    'สัปดาห์ก่อนหน้านี้',
+    'เดือนนี้',
+    'เดือนก่อน',
+  ];
+
+  List<MedicineTrack> weeklyTracks = [
+    MedicineTrack(dayName: 'จันทร์', morning: true),
+    MedicineTrack(dayName: 'อังคาร'),
+    MedicineTrack(dayName: 'พุธ', morning: true, afternoon: true, evening: true),
+    MedicineTrack(dayName: 'พฤหัสบดี'),
+    MedicineTrack(dayName: 'ศุกร์', morning: true, evening: true),
+    MedicineTrack(dayName: 'เสาร์'),
+    MedicineTrack(dayName: 'อาทิตย์'),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("ประวัติการกินยา"),
+      ),
+        body: SingleChildScrollView(
+          child: Padding(
+            //กำหนด Margin ครอบทั้งหน้าจอ (ซ้าย-ขวา 16.0)
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ปุ่ม Dropdown เลือกสัปดาห์
+                DropdownButton<String>(
+                  value: dropdownvalue,
+                  icon: const Icon(Icons.keyboard_arrow_down),
+                  items: items.map((String value) {
+                    return DropdownMenuItem<String>(value: value, child: Text(value));
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      dropdownvalue = newValue!;
+                    });
+                  },
+                ),
 
+            SizedBox(height: 16),
 
+            Text(
+              "18 ตค. ถึง 25 ตค. 2569",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)
+            ,),
+
+            SizedBox(height: 16,),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFe0e0e0),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Color(0xFF4A807E)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                    child: Table(
+                      columnWidths: const {
+                        0: FlexColumnWidth(1.5),
+                        1: FlexColumnWidth(1.0),
+                        2: FlexColumnWidth(1.0),
+                        3: FlexColumnWidth(1.0),
+                        4: FlexColumnWidth(1.0),
+                      },
+                      border: TableBorder.all(color: Color(0xFF4A807E), width: 2),
+                      children: [
+                        _buildHeaderRow(),
+                        ...weeklyTracks.map((track) => _buildDataRow(track)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
 
       //Bottom NavBar
       bottomNavigationBar: NavigationBar(
-        selectedIndex: 0, // ให้ล็อคไอคอน Home สว่างค้างไว้เป็นหน้าหลักเสมอ
+        selectedIndex: 2,
         backgroundColor: const Color(0xFF294549),
         indicatorColor: Colors.transparent,
         onDestinationSelected: (int index) {
@@ -70,6 +162,62 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
               label: ""
           ),
         ],
+      ),
+    );
+  }
+
+  //สร้างตาราง
+  TableRow _buildHeaderRow() {
+    return TableRow(
+      decoration: const BoxDecoration(color: Color(0xFF4A807E)),
+      children: [' ', 'เช้า', 'กลางวัน', 'เย็น', 'ก่อนนอน'].map((text) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFFBBD7DA), fontSize: 16
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  TableRow _buildDataRow(MedicineTrack track) {
+    return TableRow(
+      children: [
+        TableCell(
+          verticalAlignment: TableCellVerticalAlignment.middle,
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Text(track.dayName, textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+        ),
+        _buildCheckCell(track.morning, (val) => setState(() => track.morning = val)),
+        _buildCheckCell(track.afternoon, (val) => setState(() => track.afternoon = val)),
+        _buildCheckCell(track.evening, (val) => setState(() => track.evening = val)),
+        _buildCheckCell(track.beforeSleep, (val) => setState(() => track.beforeSleep = val)),
+      ],
+    );
+  }
+
+  Widget _buildCheckCell(bool isTaken, Function(bool) onTap) {
+    return TableCell(
+      verticalAlignment: TableCellVerticalAlignment.middle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          onTap(!isTaken);
+        },
+        child: SizedBox(
+          height: 45,
+          child: isTaken
+              ? const Icon(Icons.check, color: Colors.black, size: 20) // แสดงติ๊กถูกถ้ากินแล้ว
+              : const SizedBox(), // ปล่อยว่างถ้ายังไม่ได้กิน
+        ),
       ),
     );
   }
