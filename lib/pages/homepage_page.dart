@@ -23,22 +23,42 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const[
-                    Text(
-                      'สวัสดี !',
-                      style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Color(0xFF294549)),
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'สวัสดี !',
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF294549),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'คุณแอปเปิล',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: Color(0xFF4E7F90),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      'คุณแอปเปิล',
-                      style: TextStyle(fontSize: 24, color: Color(0xFF4E7F90)),
-                    )
+                    const CircleAvatar(
+                      radius: 45,
+                      backgroundColor: Color(0xFF294549),
+                      child: Icon(
+                        Icons.person,
+                        size: 55,
+                        color: Colors.white,
+                      ),
+                    ),
                   ],
                 ),
-                const CircleAvatar(
-                  radius: 50,
-
-                ),
+                const SizedBox(height: 24),
 
                 Container(
                   width: double.infinity,
