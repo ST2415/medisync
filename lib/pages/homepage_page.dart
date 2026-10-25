@@ -26,12 +26,12 @@ class _HomePageState extends State<HomePage> {
                   children: const[
                     Text(
                       'สวัสดี !',
-                      style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Color(0xFF294549)),
                     ),
                     SizedBox(height: 4),
                     Text(
                       'คุณแอปเปิล',
-                      style: TextStyle(fontSize: 24, color: Colors.black54),
+                      style: TextStyle(fontSize: 24, color: Color(0xFF4E7F90)),
                     )
                   ],
                 ),
@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBDBDBD),
+                    color: const Color(0xFFBBD7DA),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Column(
@@ -52,23 +52,24 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       const Text(
                         'ยาวันนี้',
-                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF294549)),
                       ),
                       const SizedBox(height: 4),
                       const Text(
                         'วันจันทร์ที่ 20 ตุลาคม 2569',
-                        style: TextStyle(fontSize: 16, color: Colors.black38),
+                        style: TextStyle(fontSize: 16, color: Color(0xFF294549)),
                       ),
                       const SizedBox(height: 20),
 
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-
-                          // รูปยา 3 อัน
-
+                          _buildMealItem('เช้า', '1'),
+                          _buildMealItem('กลางวัน', '1'),
+                          _buildMealItem('เย็น', '1'),
                         ],
                       ),
+                      const SizedBox(height: 20),
                       const SizedBox(height: 20),
 
                       Row(
@@ -76,11 +77,11 @@ class _HomePageState extends State<HomePage> {
                           Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () {},
-                                icon: const Icon(Icons.add, color: Colors.black87),
-                                label: const Text('เพิ่มรายการยา', style: TextStyle(color: Colors.black87)),
+                                icon: const Icon(Icons.add, color: Color(0xFF294549)),
+                                label: const Text('เพิ่มรายการยา', style: TextStyle(color: Color(0xFF294549))),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.black54),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: const BorderSide(color: Color(0xFF294549)),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                 ),
                               ),
@@ -91,7 +92,7 @@ class _HomePageState extends State<HomePage> {
                             child: ElevatedButton(
                               onPressed: () {},
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3B3B3B),
+                                backgroundColor: const Color(0xFF4E7F90),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                               ),
@@ -105,68 +106,85 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 20),
 
+                // กล่องล่าง
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBDBDBD),
-                    borderRadius: BorderRadius.circular(20)
+                    color: const Color(0xFFBBD7DA),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'ตอนเช้า (หลังอาหาร)',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'ตอนเช้า (หลังอาหาร)',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF294549),
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'ยา(ชื่อยา) 1 เม็ด',
+                                style: TextStyle(fontSize: 15, color: Colors.black54),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: 4),
-                          Text('ยา(ชื่อยา) 1 เม็ด', style: TextStyle(fontSize: 14, color: Colors.black54)),
+                          InkWell(
+                            onTap: () {},
+                            child: const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: Color(0xFF294549),
+                              child: Icon(Icons.edit, size: 18, color: Colors.white),
+                            ),
+                          ),
                         ],
                       ),
-                      IconButton(
-                          onPressed: () {},
-                          icon: const CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Color(0xFF424242),
-                            child: Icon(Icons.edit, size: 18, color: Colors.white),
+                      const SizedBox(height: 20),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {},
+                              icon: const Icon(Icons.check, color: Colors.white),
+                              label: const Text('กินยาแล้ว', style: TextStyle(color: Colors.white)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4E7F90),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {},
+                              label: const Text('บันทึกอาการ', style: TextStyle(color: Colors.black87)),
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.black87),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.black54),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+
+
                       ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.check, color: Colors.white),
-                          label: const Text('กินยาแล้ว', style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF424242),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {},
-                        label: const Text('บันทึกอาการ', style: TextStyle(color: Colors.black87)),
-                        icon: const Icon(Icons.add_circle_outline, color: Colors.black87),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.black54),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
               ],
             ),
           ),
@@ -230,3 +248,52 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+Widget _buildMealItem(String title, String count) {
+  return Column(
+    children: [
+      Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 86,
+            height: 86,
+            decoration: const BoxDecoration(
+              color: Color(0xFFD6D6D6),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.image_outlined, size: 38, color: Colors.black54),
+          ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF294549),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Text(
+                'x$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF294549),
+        ),
+      ),
+    ],
+  );
+}
+

@@ -5,7 +5,12 @@ import 'package:medisync/pages/search_medicine_page.dart';
 import 'package:medisync/pages/appointment_list_page.dart';
 
 class MedicineDetailPage extends StatefulWidget {
-  const MedicineDetailPage({super.key});
+  final String name;
+
+  const MedicineDetailPage({
+    super.key,
+    required this.name,
+  });
 
   @override
   State<MedicineDetailPage> createState() => _MedicineDetailPageState();
@@ -15,6 +20,69 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFF4E7F90),
+      appBar: AppBar(
+        backgroundColor: Color(0xFF294549),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+            onPressed: () => Navigator.pop(context)),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFFBBD7DA),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                // กล่องรูป
+
+                Container(
+                  width: double.infinity,
+                  height: 220,
+
+                  // ใส่รูปภาพ
+
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4A4A4A),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.image_outlined,
+                    size: 80,
+                    color: Color(0xFFDCDCDC),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                Text(
+                  widget.name,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF294549),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                _buildDetailRow('รักษา', 'อาการปวดหัว'),
+                _buildDetailRow('รับประทานตอน', 'เช้า'),
+                _buildDetailRow('ขนาด', '500 กรัม'),
+                _buildDetailRow('รูปแบบทางเภสัชกรรม', 'ยาเม็ด'),
+                _buildDetailRow('ผลข้างเคียง', 'มึนและวินเวียนศีรษะ'),
+                _buildDetailRow('ข้อควรระวัง', 'ไม่ควรรับประทานขณะขับขี่'),
+                _buildDetailRow('ตัวยาสำคัญ', 'amlodipine'),
+              ],
+            ),
+          ),
+        ),
+      ),
 
 
 
@@ -82,4 +150,22 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
       ),
     );
   }
+}
+
+Widget _buildDetailRow(String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8.0),
+    child: RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+        children: [
+          TextSpan(
+            text: '$label : ',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
+    ),
+  );
 }
