@@ -28,8 +28,8 @@ class HistoryTableListPage extends StatefulWidget {
 }
 
 class _HistoryTableListPageState extends State<HistoryTableListPage> {
-  String dropdownvalue = 'สัปดาห์นี้';
-  var items = [
+  String dropdownTimeTrack = 'สัปดาห์นี้';
+  var timeTrack = [
     'สัปดาห์นี้',
     'สัปดาห์ก่อนหน้านี้',
     'เดือนนี้',
@@ -69,21 +69,21 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: dropdownvalue,
+                      value: dropdownTimeTrack,
                       icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-                      isExpanded: true, // 💡 สั่งให้เนื้อหาและไอคอนลูกศรกางขยายเต็มพื้นที่ Container
+                      isExpanded: true, //ั่งให้เนื้อหาและไอคอนลูกศรกางขยายเต็มพื้นที่ Container
                       dropdownColor: Color(0xFF4A807E),
                       style: const TextStyle(
-                        color: Colors.white, // เปลี่ยนสีตัวหนังสือตามต้องการ
+                        color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                       ),
-                      items: items.map((String value) {
+                      items: timeTrack.map((String value) {
                         return DropdownMenuItem<String>(value: value, child: Text(value));
                       }).toList(),
                       onChanged: (String? newValue) {
                         setState(() {
-                          dropdownvalue = newValue!;
+                          dropdownTimeTrack = newValue!;
                         });
                       },
                     ),
@@ -101,7 +101,7 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
 
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFe0e0e0),
+                  color: const Color(0xFFBBD7DA),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Color(0xFF4A807E)),
                 ),
