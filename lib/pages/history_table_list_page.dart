@@ -54,23 +54,40 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
       ),
         body: SingleChildScrollView(
           child: Padding(
-            //กำหนด Margin ครอบทั้งหน้าจอ (ซ้าย-ขวา 16.0)
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            //กำหนด Margin ครอบทั้งหน้าจอ (ซ้าย-ขวา 32.0)
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ปุ่ม Dropdown เลือกสัปดาห์
-                DropdownButton<String>(
-                  value: dropdownvalue,
-                  icon: const Icon(Icons.keyboard_arrow_down),
-                  items: items.map((String value) {
-                    return DropdownMenuItem<String>(value: value, child: Text(value));
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      dropdownvalue = newValue!;
-                    });
-                  },
+                Container(
+                  width: 200,
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4A807E),
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: dropdownvalue,
+                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                      isExpanded: true, // 💡 สั่งให้เนื้อหาและไอคอนลูกศรกางขยายเต็มพื้นที่ Container
+                      dropdownColor: Color(0xFF4A807E),
+                      style: const TextStyle(
+                        color: Colors.white, // เปลี่ยนสีตัวหนังสือตามต้องการ
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      items: items.map((String value) {
+                        return DropdownMenuItem<String>(value: value, child: Text(value));
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          dropdownvalue = newValue!;
+                        });
+                      },
+                    ),
+                  ),
                 ),
 
             SizedBox(height: 16),
@@ -106,8 +123,11 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
                     ),
                   ),
                 ),
+
+                _buildHistorySymptomCard(),
               ],
             ),
+
           ),
         ),
 
@@ -172,11 +192,11 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
       decoration: const BoxDecoration(color: Color(0xFF4A807E)),
       children: [' ', 'เช้า', 'กลางวัน', 'เย็น', 'ก่อนนอน'].map((text) {
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
           child: Text(
             text,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFFBBD7DA), fontSize: 16
+            style: const TextStyle(color: Colors.white, fontSize: 16
             ),
           ),
         );
@@ -219,6 +239,62 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
               : const SizedBox(), // ปล่อยว่างถ้ายังไม่ได้กิน
         ),
       ),
+    );
+  }
+
+  Widget _buildHistorySymptomCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Container(
+        decoration: BoxDecoration(
+            color: const Color(0xFF4A807E),
+            borderRadius: BorderRadius.circular(10),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                collapsedBackgroundColor: Colors.transparent,
+                backgroundColor: Colors.transparent,
+                iconColor: Colors.white,
+                collapsedIconColor: Colors.white,
+                tilePadding: const EdgeInsets.symmetric(horizontal: 32.0),
+                title: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16.0),
+                  color: const Color(0xFF4A807E),
+                  child: const Text(
+                    "แสดงประวัติการบันทึกอาการหลังกินยา",
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16.0),
+                    color: const Color(0xFFBBD7DA),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "18/10-2569 ณ เวลา 18:10:12 น.",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                            "บันทึกอาการ: มึนหัว",
+                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
     );
   }
 }
