@@ -36,6 +36,16 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
     'เดือนก่อน',
   ];
 
+  String formatThaiDate(DateTime date) {
+    const months = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.',
+      'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.',
+      'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
+    ];
+
+    return '${date.day} ${months[date.month - 1]} ${date.year + 543}';
+  }
+
   List<MedicineTrack> weeklyTracks = [
     MedicineTrack(dayName: 'จันทร์', morning: true),
     MedicineTrack(dayName: 'อังคาร'),
@@ -46,12 +56,52 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
     MedicineTrack(dayName: 'อาทิตย์'),
   ];
 
+  DateTimeRange getDateRange() {
+    final now = DateTime.now();
+
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+
+    switch (dropdownTimeTrack) {
+      case 'สัปดาห์นี้':
+        return DateTimeRange(
+          start: monday,
+          end: monday.add(const Duration(days: 6)),
+        );
+
+      case 'สัปดาห์ก่อนหน้านี้':
+        final start = monday.subtract(const Duration(days: 7));
+        return DateTimeRange(
+          start: monday,
+          end: monday.add(const Duration(days: 6)),
+        );
+
+      case 'เดือนนี้':
+        return DateTimeRange(
+          start: DateTime(now.year, now.month, 1),
+          end: DateTime(now.year, now.month + 1, 0),
+        );
+
+      case 'เดือนก่อน':
+        return DateTimeRange(
+          start: DateTime(now.year, now.month, -1, 1),
+          end: DateTime(now.year, now.month, 0),
+        );
+
+      default:
+        return DateTimeRange(
+          start: monday,
+          end: monday.add(const Duration(days: 6)),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("ประวัติการกินยา"),
-      ),
         body: SingleChildScrollView(
           child: Padding(
             //กำหนด Margin ครอบทั้งหน้าจอ (ซ้าย-ขวา 32.0)
@@ -59,6 +109,18 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 20),
+                  child: Text(
+                    'ประวัติการกินยา',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+
                 // ปุ่ม Dropdown เลือกสัปดาห์
                 Container(
                   width: 200,
@@ -92,10 +154,20 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
 
             SizedBox(height: 16),
 
-            Text(
-              "18 ตค. ถึง 25 ตค. 2569",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24)
-            ,),
+            Builder(
+              builder: (context) {
+                final range = getDateRange();
+
+                return Text(
+                  "${formatThaiDate(range.start)} ถึง "
+                  "${formatThaiDate(range.end)}",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                  ),
+                );
+              }
+            ),
 
             SizedBox(height: 16,),
 

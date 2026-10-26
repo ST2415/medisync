@@ -63,61 +63,79 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("แจ้งเตือนนัดหมายแพทย์"),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          //กำหนด Margin ครอบทั้งหน้าจอ (ซ้าย-ขวา 32.0)
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              // ปุ่ม Dropdown เลือกสัปดาห์
-              Container(
-              width: 200,
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4A807E),
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: dropdownAppointmentList,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-                  isExpanded: true, //สั่งให้เนื้อหาและไอคอนลูกศรกางขยายเต็มพื้นที่ Container
-                  dropdownColor: Color(0xFF4A807E),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+      body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 20),
+                  child: Text(
+                    'แจ้งเตือนนัดหมายแพทย์',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
-                  items: appointmentList.map((String value) {
-                    return DropdownMenuItem<String>(value: value, child: Text(value));
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      dropdownAppointmentList = newValue!;
-                    });
-                  },
+                ),
+
+                // ปุ่ม Dropdown เลือกสัปดาห์
+                Container(
+                width: 200,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4A807E),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: dropdownAppointmentList,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                    isExpanded: true, //สั่งให้เนื้อหาและไอคอนลูกศรกางขยายเต็มพื้นที่ Container
+                    dropdownColor: Color(0xFF4A807E),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    items: appointmentList.map((String value) {
+                      return DropdownMenuItem<String>(value: value, child: Text(value));
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue == null) return;
+
+                      setState(() {
+                        dropdownAppointmentList = newValue;
+                      });
+                    },
+                  ),
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              Builder(
+                builder: (context) {
+                  final appointments = _getFilteredAppointments();
+
+                  if (appointments.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.only(top: 24),
+                      child: Center(
+                        child: Text('ไม่มีรายการนัดหมาย'),
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: appointments.map((appointment) {
+                      return _buildAppointmentCard(appointment);
+                    }).toList(),
+                  );
+                },
+              ),
+              ],
+
             ),
-
-              // ListView.builder(
-              //   padding: const EdgeInsets.symmetric(vertical: 8.0),
-              //   itemCount: myAppointments.length,
-              //   itemBuilder: (context, index) {
-              //     return _buildWaitingAppointmentCard(myAppointments[index]);
-              //   },
-              // ),
-            ],
-
-            ),
-
-
-        ),
-      ),
 
 
       //Bottom NavBar
@@ -175,73 +193,134 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     );
   }
 
-  // Widget _buildWaitingAppointmentCard(Appointment item) {
-  //   bool isAlreadyConfirmed = item.status == 'ยืนยันแล้ว';
-  //
-  //   return Container(
-  //     margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-  //     padding: const EdgeInsets.all(16.0),
-  //     decoration: BoxDecoration(
-  //       color: const Color(0xffb0b0b0), // สีพื้นหลังเทาอ่อนตามรูป
-  //       borderRadius: BorderRadius.circular(12.0),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         const Text(
-  //           "นัดหมายครั้งถัดไป",
-  //           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
-  //         ),
-  //         SizedBox(height: 8.0),
-  //         Text(
-  //           "วันที่ 10/11/2026 ณ เวลา 09:00 น.",
-  //           style: const TextStyle(fontSize: 16, color: Colors.black),
-  //         ),
-  //         SizedBox(height: 8.0),
-  //         Text(
-  //           "สถานะ: รอยืนยัน",
-  //           style: const TextStyle(fontSize: 16, color: Colors.black),
-  //         ),
-  //
-  //         SizedBox(height: 16.0),
-  //
-  //         Row(
-  //           children: [
-  //             Expanded(
-  //                 child: OutlinedButton(
-  //                   onPressed: isAlreadyConfirmed ? null : () {
-  //                     // Logic จำลองการกดเลื่อนนัด
-  //                     ScaffoldMessenger.of(context).showSnackBar(
-  //                     const SnackBar(content: Text('ระบบจำลองการเลื่อนวันนัดหมายทำงาน')),);},
-  //                   style: OutlinedButton.styleFrom(
-  //                     side: const BorderSide(color: Colors.black54),
-  //                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-  //                     padding: const EdgeInsets.symmetric(vertical: 12.0),
-  //                   ),
-  //                   child: const Text("เลื่อนวันนัดหมาย", style: TextStyle(color: Colors.black)),
-  //                   //child: const Text("เลื่อนวันนัดหมาย", style: TextStyle(color: Colors.black)),
-  //                 ),
-  //             ),
-  //             const SizedBox(width: 12.0),
-  //
-  //             Expanded(
-  //                 child: ElevatedButton(
-  //                   onPressed: isAlreadyConfirmed ? null : () => _handleConfirmButton(item.appid),
-  //                   style: ElevatedButton.styleFrom(
-  //                   backgroundColor: const Color(0xff404040), // สีปุ่มเข้มตามรูป
-  //                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-  //                   padding: const EdgeInsets.symmetric(vertical: 12.0),
-  //                 ),
-  //                 child: Text(
-  //                     isAlreadyConfirmed ? "ยืนยันแล้ว" : "ยืนยันวันนัดหมาย",
-  //                     style: const TextStyle(color: Colors.white)
-  //                 ),
-  //             ),
-  //           ),
-  //         ],
-  //     ),
-  //   ],
-  //   )
-  //   );
-  // }
+  List<Appointment> _getFilteredAppointments() {
+    switch (dropdownAppointmentList) {
+      case 'รายการที่ยืนยัน':
+        return myAppointments
+            .where((item) => item.status == 'ยืนยันแล้ว')
+            .toList();
+
+      case 'รายการที่เลื่อน':
+        return myAppointments
+            .where((item) => item.status == 'เลื่อนแล้ว')
+            .toList();
+
+      case 'รายการที่ผ่านมาแล้ว':
+        final now = DateTime.now();
+
+        return myAppointments.where((item) {
+          final parts = item.dateStr.split('/');
+          if (parts.length != 3) return false;
+
+          final date = DateTime(
+            int.parse(parts[2]),
+            int.parse(parts[1]),
+            int.parse(parts[0]),
+          );
+
+          return date.isBefore(
+            DateTime(now.year, now.month, now.day),
+          );
+        }).toList();
+
+      default:
+        return myAppointments;
+    }
+  }
+
+
+  Widget _buildAppointmentCard(Appointment item) {
+    final isConfirmed = item.status == 'ยืนยันแล้ว';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFBBD7DA),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'นัดหมายครั้งถัดไป',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          Text(
+            'วันที่ ${item.dateStr} ณ เวลา ${item.timeStr} น.',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+
+          Text(
+            'สถานะ: ${item.status}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: isConfirmed
+                      ? null
+                      : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'ระบบจำลองการเลื่อนวันนัดหมาย',
+                        ),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: Color(0x75294549), width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'เลื่อนวันนัดหมาย',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: isConfirmed
+                      ? null
+                      : () => _handleConfirmButton(item.appid),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF294549),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: const Color(0x75294549),
+                    disabledForegroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    isConfirmed ? 'ยืนยันแล้ว' : 'ยืนยันวันนัดหมาย',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -3,13 +3,13 @@ from pydantic import BaseModel
 import sqlite3
 
 app = FastAPI(
-    title="Smart Pill & Medical Logbook API"
+    title="Medisync"
 )
 
 @app.get("/")
 def home():
     return {
-        "message": "Smart Pill API is running"
+        "message": "Medisync API is running"
     }
 
 @app.get("/health")
