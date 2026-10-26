@@ -1,0 +1,83 @@
+{
+  "info": {
+    "_postman_id": "7443126d-87ec-4ed8-a781-0978d37e2a71",
+    "name": "Get Method",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58994226",
+    "_collection_link": "https://go.postman.co/collection/58994226-7443126d-87ec-4ed8-a781-0978d37e2a71?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Get Method : GET all",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/users",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/user?user_id=1",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "user"
+          ],
+          "query": [
+            {
+              "key": "user_id",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET docs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/docs",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "docs"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
