@@ -1,0 +1,6 @@
+$kind: http-request
+name: "Medisync API : GET all"
+description: ""
+url: http://127.0.0.1:8000/users
+method: GET
+order: 3000
