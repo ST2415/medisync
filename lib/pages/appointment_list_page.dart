@@ -3,20 +3,7 @@ import 'package:medisync/pages/homepage_page.dart';
 import 'package:medisync/pages/history_table_list_page.dart';
 import 'package:medisync/pages/search_medicine_page.dart';
 import 'package:medisync/services/api.dart';
-
-class Appointment {
-  final String appid;
-  final String dateStr;
-  final String timeStr;
-  String status; // เช่น 'รอยืนยัน', 'ยืนยันแล้ว'
-
-  Appointment({
-    required this.appid,
-    required this.dateStr,
-    required this.timeStr,
-    required this.status,
-  });
-}
+import 'package:medisync/models/appointment_model.dart';
 
 class AppointmentListPage extends StatefulWidget {
   const AppointmentListPage({super.key});
