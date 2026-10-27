@@ -449,34 +449,77 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
             ),
           ),
         ),
-        _buildCheckCell(track.morning),
-        _buildCheckCell(track.afternoon),
-        _buildCheckCell(track.evening),
-        _buildCheckCell(track.beforeSleep),
+        _buildCheckCell(track.morning, track.morningLogId),
+        _buildCheckCell(track.afternoon, track.afternoonLogId),
+        _buildCheckCell(track.evening, track.eveningLogId),
+        _buildCheckCell(track.beforeSleep, track.beforeSleepLogId),
       ],
     );
   }
 
-  Widget _buildCheckCell(int status) {
-    return TableCell(
-      verticalAlignment: TableCellVerticalAlignment.middle,
-      child: SizedBox(
-        height: 50,
-        child: Center(
-          child: switch (status) {
-            1 => const Icon(
-              Icons.check,
-              color: Colors.black,
-              size: 24,
+  Widget _buildCheckCell(int status, String? logId) {
+    return InkWell(
+      onTap: logId == null
+          ? null
+          : () async {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('ยืนยันการลบข้อมูล'),
+            content: const Text(
+              'ต้องการลบข้อมูลการกินยารายการนี้หรือไม่?',
             ),
-            2 => const Icon(
-              Icons.close,
-              color: Colors.black,
-              size: 24
+            actions: [
+              TextButton(
+                onPressed: () =>
+                    Navigator.pop(dialogContext, false),
+                child: const Text('ยกเลิก'),
+              ),
+              TextButton(
+                onPressed: () =>
+                    Navigator.pop(dialogContext, true),
+                child: const Text(
+                  'ลบข้อมูล',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) return;
+
+        try {
+          await ApiService.deleteMedicationLog(logId);
+
+          if (!mounted) return;
+
+          await loadHistory();
+
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ลบข้อมูลสำเร็จ'),
             ),
-            _ => const SizedBox(),
-          },
-        ),
+          );
+        } catch (e) {
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ลบข้อมูลไม่สำเร็จ: $e'),
+            ),
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: status == 1
+            ? const Icon(Icons.check, color: Colors.black)
+            : status == 2
+            ? const Icon(Icons.close, color: Colors.black)
+            : const Text('-'),
       ),
     );
   }
