@@ -2,21 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:medisync/pages/homepage_page.dart';
 import 'package:medisync/pages/search_medicine_page.dart';
 import 'package:medisync/pages/appointment_list_page.dart';
-
+import 'package:medisync/services/api.dart';
 
 class MedicineTrack {
   final String dayName;
-  bool morning;
-  bool afternoon;
-  bool evening;
-  bool beforeSleep;
+  int morning;
+  int afternoon;
+  int evening;
+  int beforeSleep;
 
   MedicineTrack({
     required this.dayName,
-    this.morning = false,
-    this.afternoon = false,
-    this.evening = false,
-    this.beforeSleep = false,
+    this.morning = 0,
+    this.afternoon = 0,
+    this.evening = 0,
+    this.beforeSleep = 0,
   });
 }
 
@@ -46,24 +46,145 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
     return '${date.day} ${months[date.month - 1]} ${date.year + 543}';
   }
 
-  List<MedicineTrack> weeklyTracks = [
-    MedicineTrack(dayName: 'จันทร์', morning: true),
-    MedicineTrack(dayName: 'อังคาร'),
-    MedicineTrack(dayName: 'พุธ', morning: true, afternoon: true, evening: true),
-    MedicineTrack(dayName: 'พฤหัสบดี'),
-    MedicineTrack(dayName: 'ศุกร์', morning: true, evening: true),
-    MedicineTrack(dayName: 'เสาร์'),
-    MedicineTrack(dayName: 'อาทิตย์'),
-  ];
+  List<MedicineTrack> buildTracksFromHistory(
+      DateTimeRange range,
+      ) {
+    const weekdays = [
+      'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี',
+      'วันศุกร์', 'วันเสาร์', 'วันอาทิตย์',
+    ];
+
+    const months = [
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.',
+      'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.',
+      'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
+    ];
+
+    final tracks = <MedicineTrack>[];
+
+    for (
+    var day = range.start;
+    !day.isAfter(range.end);
+    day = day.add(const Duration(days: 1))
+    ) {
+      tracks.add(
+        MedicineTrack(
+          dayName: '${weekdays[day.weekday - 1]}ที่ ${day.day} ${months[day.month - 1]}',
+        ),
+      );
+    }
+
+    for (final log in history) {
+      debugPrint('status จาก API: ${log['status']}');
+      try {
+        final actionDate = DateFormatHelper.parseActionTime(
+          log['action_time'].toString(),
+        );
+
+        if (actionDate.isBefore(range.start) ||
+            actionDate.isAfter(
+              range.end.add(const Duration(days: 1)),
+            )) {
+          continue;
+        }
+
+        final dayIndex = actionDate.difference(
+          range.start,
+        ).inDays;
+
+        if (dayIndex < 0 || dayIndex >= tracks.length) {
+          continue;
+        }
+
+        // จัดกลุ่มตามช่วงเวลาจาก action_time
+        final hour = actionDate.hour;
+
+        final statusText = log['status'].toString().trim();
+        final int status;
+        if (statusText == 'ยังไม่ได้กิน') {
+          // ยังไม่ได้กินยา
+          status = 2;
+        } else if (statusText == 'กินแล้ว') {
+          // กินยาแล้ว
+          status = 1;
+        } else {
+          continue;
+        }
+
+        final track = tracks[dayIndex];
+
+        if (hour >= 5 && hour < 12) {
+          track.morning = status;
+        } else if (hour >= 12 && hour < 17) {
+          track.afternoon = status;
+        } else if (hour >= 17 && hour < 21) {
+          track.evening = status;
+        } else {
+          track.beforeSleep = status;
+        }
+      } catch (_) {
+        // ข้ามรายการที่ action_time ไม่ตรงรูปแบบที่รองรับ
+        continue;
+      }
+    }
+
+    return tracks;
+  }
+
+  final int userId = 16;
+
+  bool isLoading = true;
+  String? errorMessage;
+  List<dynamic> history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadHistory();
+  }
+
+  Future<void> loadHistory() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final range = getDateRange();
+      debugPrint('กำลังเรียก API: /schedules');
+
+      final result = await ApiService.getMedicationLogHistory(
+        userId: userId,
+        startDate: range.start,
+        endDate: range.end,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        history = result;
+        isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('API Error: $e');
+      debugPrint('StackTrace: $stackTrace');
+
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = e.toString();
+        isLoading = false;
+      });
+    }
+  }
 
   DateTimeRange getDateRange() {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-    final monday = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
+    final monday = today.subtract(
+      Duration(days: today.weekday - 1),
+    );
 
     switch (dropdownTimeTrack) {
       case 'สัปดาห์นี้':
@@ -73,10 +194,13 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
         );
 
       case 'สัปดาห์ก่อนหน้านี้':
-        final start = monday.subtract(const Duration(days: 7));
+        final start = monday.subtract(
+          const Duration(days: 7),
+        );
+
         return DateTimeRange(
-          start: monday,
-          end: monday.add(const Duration(days: 6)),
+          start: start,
+          end: start.add(const Duration(days: 6)),
         );
 
       case 'เดือนนี้':
@@ -87,7 +211,7 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
 
       case 'เดือนก่อน':
         return DateTimeRange(
-          start: DateTime(now.year, now.month, -1, 1),
+          start: DateTime(now.year, now.month - 1, 1),
           end: DateTime(now.year, now.month, 0),
         );
 
@@ -147,6 +271,8 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
                         setState(() {
                           dropdownTimeTrack = newValue!;
                         });
+
+                        loadHistory();
                       },
                     ),
                   ),
@@ -154,54 +280,98 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
 
             SizedBox(height: 16),
 
-            Builder(
-              builder: (context) {
-                final range = getDateRange();
+          Builder(
+            builder: (context) {
+              final range = getDateRange();
+              final tracks = buildTracksFromHistory(range);
 
-                return Text(
-                  "${formatThaiDate(range.start)} ถึง "
-                  "${formatThaiDate(range.end)}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                  ),
-                );
-              }
-            ),
-
-            SizedBox(height: 16,),
-
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFBBD7DA),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Color(0xFF4A807E)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                    child: Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(1.5),
-                        1: FlexColumnWidth(1.0),
-                        2: FlexColumnWidth(1.0),
-                        3: FlexColumnWidth(1.0),
-                        4: FlexColumnWidth(1.0),
-                      },
-                      border: TableBorder.all(color: Color(0xFF4A807E), width: 2),
-                      children: [
-                        _buildHeaderRow(),
-                        ...weeklyTracks.map((track) => _buildDataRow(track)),
-                      ],
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${formatThaiDate(range.start)} ถึง '
+                        '${formatThaiDate(range.end)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
 
-                _buildHistorySymptomCard(),
-              ],
-            ),
+                  if (isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (errorMessage != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('โหลดประวัติไม่สำเร็จ'),
+                        Text(
+                          errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: loadHistory,
+                          child: const Text('ลองอีกครั้ง'),
+                        ),
+                      ],
+                    )
+                  else if (history.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('ไม่พบประวัติในช่วงวันที่เลือก'),
+                        ),
+                      )
+                    else
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBBD7DA),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: const Color(0xFF4A807E),
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Table(
+                              defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                              columnWidths: const {
+                                0: FlexColumnWidth(1.5),
+                                1: FlexColumnWidth(1),
+                                2: FlexColumnWidth(1),
+                                3: FlexColumnWidth(1),
+                                4: FlexColumnWidth(1),
+                              },
+                              border: TableBorder.all(
+                                color: const Color(0xFF4A807E),
+                                width: 1,
+                              ),
+                              children: [
+                                _buildHeaderRow(),
+                                ...tracks.map(_buildDataRow),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
 
+              _buildHistorySymptomCard(),
+            ],
           ),
         ),
+      ),
 
       //Bottom NavBar
       bottomNavigationBar: NavigationBar(
@@ -282,91 +452,153 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
         TableCell(
           verticalAlignment: TableCellVerticalAlignment.middle,
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Text(track.dayName, textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
+            padding: const EdgeInsets.all(10),
+            child: Text(
+              track.dayName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14),
             ),
           ),
         ),
-        _buildCheckCell(track.morning, (val) => setState(() => track.morning = val)),
-        _buildCheckCell(track.afternoon, (val) => setState(() => track.afternoon = val)),
-        _buildCheckCell(track.evening, (val) => setState(() => track.evening = val)),
-        _buildCheckCell(track.beforeSleep, (val) => setState(() => track.beforeSleep = val)),
+        _buildCheckCell(track.morning),
+        _buildCheckCell(track.afternoon),
+        _buildCheckCell(track.evening),
+        _buildCheckCell(track.beforeSleep),
       ],
     );
   }
 
-  Widget _buildCheckCell(bool isTaken, Function(bool) onTap) {
+  Widget _buildCheckCell(int status) {
     return TableCell(
       verticalAlignment: TableCellVerticalAlignment.middle,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          onTap(!isTaken);
-        },
-        child: SizedBox(
-          height: 45,
-          child: isTaken
-              ? const Icon(Icons.check, color: Colors.black, size: 20) // แสดงติ๊กถูกถ้ากินแล้ว
-              : const SizedBox(), // ปล่อยว่างถ้ายังไม่ได้กิน
+      child: SizedBox(
+        height: 50,
+        child: Center(
+          child: switch (status) {
+            1 => const Icon(
+              Icons.check,
+              color: Colors.black,
+              size: 24,
+            ),
+            2 => const Icon(
+              Icons.close,
+              color: Colors.black,
+              size: 24
+            ),
+            _ => const SizedBox(),
+          },
         ),
       ),
     );
   }
 
   Widget _buildHistorySymptomCard() {
+    // เลือกเฉพาะรายการที่มีข้อมูล side_effect
+    final sideEffectLogs = history.where((log) {
+      final sideEffect = log['side_effect']?.toString().trim() ?? '';
+      return sideEffect.isNotEmpty;
+    }).toList();
+
+    // เรียงจากรายการล่าสุดไปเก่าสุด
+    sideEffectLogs.sort((a, b) {
+      final dateA = DateFormatHelper.parseActionTime(
+        a['action_time'].toString(),
+      );
+      final dateB = DateFormatHelper.parseActionTime(
+        b['action_time'].toString(),
+      );
+      return dateB.compareTo(dateA);
+    });
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Container(
         decoration: BoxDecoration(
-            color: const Color(0xFF4A807E),
-            borderRadius: BorderRadius.circular(10),
+          color: const Color(0xFF4A807E),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                collapsedBackgroundColor: Colors.transparent,
-                backgroundColor: Colors.transparent,
-                iconColor: Colors.white,
-                collapsedIconColor: Colors.white,
-                tilePadding: const EdgeInsets.symmetric(horizontal: 32.0),
-                title: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16.0),
-                  color: const Color(0xFF4A807E),
-                  child: const Text(
-                    "แสดงประวัติการบันทึกอาการหลังกินยา",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+            ),
+            child: ExpansionTile(
+              collapsedBackgroundColor: Colors.transparent,
+              backgroundColor: Colors.transparent,
+              iconColor: Colors.white,
+              collapsedIconColor: Colors.white,
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 32,
+              ),
+              title: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'แสดงประวัติการบันทึกอาการหลังกินยา',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-
-                children: [
+              ),
+              children: [
+                if (sideEffectLogs.isEmpty)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16),
                     color: const Color(0xFFBBD7DA),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "18/10-2569 ณ เวลา 18:10:12 น.",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                            "บันทึกอาการ: มึนหัว",
-                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-                        ),
-                      ],
+                    child: const Text(
+                      'ยังไม่มีประวัติการบันทึกอาการข้างเคียง',
+                      style: TextStyle(fontSize: 16),
                     ),
-                  ),
-                ],
-              ),
+                  )
+                else
+                  ...sideEffectLogs.map((log) {
+                    final actionDate =
+                    DateFormatHelper.parseActionTime(
+                      log['action_time'].toString(),
+                    );
+
+                    final sideEffect =
+                    log['side_effect'].toString().trim();
+
+                    final time =
+                        '${actionDate.hour.toString().padLeft(2, '0')}:'
+                        '${actionDate.minute.toString().padLeft(2, '0')}';
+
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      color: const Color(0xFFBBD7DA),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${formatThaiDate(actionDate)} '
+                                'เวลา $time น.',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'บันทึกอาการ: $sideEffect',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 }
