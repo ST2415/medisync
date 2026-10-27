@@ -3,6 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel
 import sqlite3
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
 app = FastAPI(
     title="Medisync"
@@ -45,7 +46,8 @@ class User(BaseModel):
     medicine: str
 
 def get_db_connection():
-    conn = sqlite3.connect('medisync.db')
+    db_path = Path(__file__).resolve().parent / "medisync.db"
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
