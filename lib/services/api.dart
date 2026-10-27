@@ -57,6 +57,8 @@ class ApiService {
     return Map<String, dynamic>.from(await _get('/health'));
   }
 
+
+
   // USERS
   static Future<List<dynamic>> getUsers() async {
     return List<dynamic>.from(await _get('/users'));
@@ -78,6 +80,8 @@ class ApiService {
       await _get('/user', queryParameters: query),
     );
   }
+
+
 
   // SCHEDULES
   static Future<List<dynamic>> getSchedules() async {
@@ -101,6 +105,8 @@ class ApiService {
     );
   }
 
+
+
   // MEDICINES
   static Future<List<dynamic>> getMedicines() async {
     return List<dynamic>.from(await _get('/medicines'));
@@ -122,6 +128,8 @@ class ApiService {
       await _get('/medicine', queryParameters: query),
     );
   }
+
+
 
   // APPOINTMENTS
   static Future<List<dynamic>> getAppointments() async {
@@ -146,6 +154,49 @@ class ApiService {
       await _get('/appointment', queryParameters: query),
     );
   }
+
+  // เลื่อนวันและเวลานัดหมาย
+
+  static Future<dynamic> _put(
+      String path, {
+        required Map<String, dynamic> body,
+      }) async {
+    final response = await http.put(
+      Uri.parse('$apiBase$path'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      if (response.body.isEmpty) return {};
+      return jsonDecode(response.body);
+    }
+
+    throw Exception(
+      'PUT $path failed: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  static Future<Map<String, dynamic>> reappointment({
+    required String appointmentId,
+    required String appointmentDate,
+    required String appointmentTime,
+  }) async {
+    final response = await _put(
+      '/appointments/$appointmentId/reappointment',
+      body: {
+        'appointment_date': appointmentDate,
+        'appointment_time': appointmentTime,
+      },
+    );
+
+    return Map<String, dynamic>.from(response);
+  }
+
+
 
   // MEDICATION LOGS
   static Future<List<dynamic>> getMedicationLogs() async {

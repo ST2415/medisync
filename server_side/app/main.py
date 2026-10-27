@@ -177,6 +177,62 @@ def get_appointment(appointment_id: str = None, user_id: int = None):
         if appointment is None:
             raise HTTPException(status_code=404, detail="Appointment not found")
         return dict(appointment)
+
+# Request สำหรับเลื่อนวันและเวลานัดหมาย
+class ReappointmentRequest(BaseModel):
+    appointment_date: str
+    appointment_time: str
+
+# เลื่อนวันและเวลานัดหมาย
+@app.put("/appointments/{appointment_id}/reappointment")
+def reappointment(
+    appointment_id: str,
+    request: ReappointmentRequest
+):
+    conn = get_db_connection()
+
+    # ตรวจสอบว่ามีนัดหมายนี้อยู่ในฐานข้อมูลหรือไม่
+    appointment = conn.execute(
+        "SELECT * FROM appointments WHERE appointment_id = ?",
+        (appointment_id,)
+    ).fetchone()
+
+    if appointment is None:
+        conn.close()
+        raise HTTPException(
+            status_code=404,
+            detail="Appointment not found"
+        )
+
+    # อัปเดตวันและเวลานัดหมาย
+    conn.execute(
+        """
+        UPDATE appointments
+        SET appointment_date = ?,
+            appointment_time = ?
+        WHERE appointment_id = ?
+        """,
+        (
+            request.appointment_date,
+            request.appointment_time,
+            appointment_id
+        )
+    )
+
+    conn.commit()
+
+    # ดึงข้อมูลนัดหมายล่าสุดหลังอัปเดต
+    updated_appointment = conn.execute(
+        "SELECT * FROM appointments WHERE appointment_id = ?",
+        (appointment_id,)
+    ).fetchone()
+
+    conn.close()
+
+    return {
+        "message": "Appointment rescheduled successfully",
+        "appointment": dict(updated_appointment)
+    }
     
 
 # medication_log
