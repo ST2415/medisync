@@ -265,7 +265,7 @@ def get_medication_log_history(
     finally:
         conn.close()
         
-@app.delete("/medication_logs/{log_id}")
+@app.delete("/medication_log/{log_id}")
 def delete_medication_log(log_id: str):
     conn = get_db_connection()
 
@@ -274,19 +274,18 @@ def delete_medication_log(log_id: str):
             "DELETE FROM medication_log WHERE log_id = ?",
             (log_id,)
         )
-        conn.commit()
 
         if cursor.rowcount == 0:
             raise HTTPException(
                 status_code=404,
-                detail="Log not found"
+                detail="Medication log not found"
             )
 
+        conn.commit()
         return {
-            "message": "Medication log deleted successfully",
+            "message": "ลบข้อมูลสำเร็จ",
             "log_id": log_id
         }
 
     finally:
         conn.close()
-    

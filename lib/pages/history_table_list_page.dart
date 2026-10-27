@@ -100,12 +100,16 @@ class _HistoryTableListPageState extends State<HistoryTableListPage> {
 
         if (hour >= 5 && hour < 12) {
           track.morning = status;
+          track.morningLogId = log['log_id']?.toString();
         } else if (hour >= 12 && hour < 17) {
           track.afternoon = status;
+          track.afternoonLogId = log['log_id']?.toString();
         } else if (hour >= 17 && hour < 21) {
           track.evening = status;
+          track.eveningLogId = log['log_id']?.toString();
         } else {
           track.beforeSleep = status;
+          track.beforeSleepLogId = log['log_id']?.toString();
         }
       } catch (_) {
         // ข้ามรายการที่ action_time ไม่ตรงรูปแบบที่รองรับ

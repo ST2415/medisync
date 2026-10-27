@@ -239,7 +239,9 @@ class ApiService {
 
   // DELETE: ลบประวัติการกินยาที่บันทึกผิดพลาด
   static Future<void> deleteMedicationLog(String logId) async {
-    final uri = Uri.parse('$apiBase/medication_logs/$logId');
+    final uri = Uri.parse(
+      '$apiBase/medication_log/${Uri.encodeComponent(logId)}',
+    );
 
     final response = await http
         .delete(uri)
@@ -248,7 +250,8 @@ class ApiService {
     if (response.statusCode < 200 ||
         response.statusCode >= 300) {
       throw Exception(
-        'HTTP ${response.statusCode}: ${response.body}',
+        'ลบข้อมูลไม่สำเร็จ: HTTP ${response.statusCode} '
+            '${response.body}',
       );
     }
   }
