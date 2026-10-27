@@ -3,22 +3,7 @@ import 'package:medisync/pages/homepage_page.dart';
 import 'package:medisync/pages/search_medicine_page.dart';
 import 'package:medisync/pages/appointment_list_page.dart';
 import 'package:medisync/services/api.dart';
-
-class MedicineTrack {
-  final String dayName;
-  int morning;
-  int afternoon;
-  int evening;
-  int beforeSleep;
-
-  MedicineTrack({
-    required this.dayName,
-    this.morning = 0,
-    this.afternoon = 0,
-    this.evening = 0,
-    this.beforeSleep = 0,
-  });
-}
+import 'package:medisync/models/history_model.dart';
 
 class HistoryTableListPage extends StatefulWidget {
   const HistoryTableListPage({super.key});
