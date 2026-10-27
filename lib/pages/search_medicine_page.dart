@@ -305,9 +305,7 @@ class _MedicineCard extends StatelessWidget {
     final dynamic imageValue =
         itemData['image_url'] ?? itemData['image'];
 
-    final String? imageUrl = imageValue == null
-        ? null
-        : imageValue.toString();
+    final String? imageUrl = imageValue?.toString();
 
     return GestureDetector(
       // กดการ์ดเพื่อเปิดหน้ารายละเอียดยา

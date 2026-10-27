@@ -1,6 +1,4 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 import 'package:medisync/pages/homepage_page.dart';
 import 'package:medisync/pages/history_table_list_page.dart';
