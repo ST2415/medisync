@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class HomeService {
-  // 💡 เปลี่ยน URL ตาม Server ของคุณ (ถ้าใช้ Desktop รันใช้ localhost ได้ครับ)
+  // เปลี่ยน URL ตาม Server ของคุณ (ถ้าใช้ Desktop รันใช้ localhost ได้ครับ)
   static const String baseUrl = 'http://localhost:8000';
 
   // ดึงข้อมูลสรุปหน้า Home (ชื่อผู้ใช้, รายการยาประจำวัน ฯลฯ)
