@@ -1,6 +1,23 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+//ตัวช่วยแปลงวันที่ วางไว้นอก ApiService
+class DateFormatHelper {
+  static DateTime parseActionTime(String value) {
+    final parts = value.trim().split(' ');
+    final dateParts = parts[0].split('/');
+    final timeParts = parts[1].split(':');
+
+    return DateTime(
+      int.parse(dateParts[2]), // ปี
+      int.parse(dateParts[1]), // เดือน
+      int.parse(dateParts[0]), // วัน
+      int.parse(timeParts[0]), // ชั่วโมง
+      int.parse(timeParts[1]), // นาที
+    );
+  }
+}
+
 // เปลี่ยน URL ให้ตรงกับแพลตฟอร์มที่ใช้รัน Flutter
 const String apiBase = String.fromEnvironment(
   'API_BASE',
@@ -148,5 +165,91 @@ class ApiService {
     if (scheduleId != null) query['schedule_id'] = scheduleId;
 
     return _get('/medication_log', queryParameters: query);
+  }
+
+  // GET: ประวัติการกินยาตามช่วงวันที่
+  static Future<List<dynamic>> getMedicationLogHistory({
+    required int userId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    String formatDate(DateTime date) {
+      return '${date.year.toString().padLeft(4, '0')}-'
+          '${date.month.toString().padLeft(2, '0')}-'
+          '${date.day.toString().padLeft(2, '0')}';
+    }
+
+    if (startDate.isAfter(endDate)) {
+      throw ArgumentError('startDate ต้องไม่เกิน endDate');
+    }
+
+    // 1. หาตารางการกินยาของ user ที่ต้องการ
+    final schedules = await getSchedules();
+
+    final userScheduleIds = schedules
+        .where((s) => s['user_id'].toString() == userId.toString())
+        .map((s) => s['schedule_id'].toString())
+        .toSet();
+
+    // 2. ดึง logs ทั้งหมด แล้วเลือกเฉพาะ schedule ของ user นี้
+    final allLogs = await getMedicationLogs();
+
+    final userLogs = allLogs.where(
+          (log) => userScheduleIds.contains(
+        log['schedule_id']?.toString(),
+      ),
+    );
+
+    // 3. เรียก log_history ของแต่ละ log_id
+    final results = await Future.wait(
+      userLogs.map((log) async {
+        final logId = log['log_id']?.toString();
+
+        if (logId == null || logId.isEmpty) {
+          return <dynamic>[];
+        }
+
+        final result = await _get(
+          '/medication_log/$logId/log_history',
+          queryParameters: {
+            'start_date': formatDate(startDate),
+            'end_date': formatDate(endDate),
+          },
+        );
+
+        return List<dynamic>.from(result);
+      }),
+    );
+
+    // 4. รวมและเรียงตามวันเวลา
+    final history = results.expand((items) => items).toList();
+
+    history.sort((a, b) {
+      return DateFormatHelper.parseActionTime(
+        a['action_time'].toString(),
+      ).compareTo(
+        DateFormatHelper.parseActionTime(
+          b['action_time'].toString(),
+        ),
+      );
+    });
+
+    return history;
+  }
+
+  // DELETE: ลบประวัติการกินยาที่บันทึกผิดพลาด
+  static Future<void> deleteMedicationLog(String logId) async {
+    final uri = Uri.parse('$apiBase/medication_logs/$logId');
+
+    final response = await http
+        .delete(uri)
+        .timeout(timeout);
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300) {
+      throw Exception(
+        'HTTP ${response.statusCode}: ${response.body}',
+      );
+    }
   }
 }

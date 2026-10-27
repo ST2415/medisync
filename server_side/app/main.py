@@ -1,9 +1,23 @@
 from fastapi import FastAPI, HTTPException
+from datetime import date, datetime
 from pydantic import BaseModel
 import sqlite3
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Medisync"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:60158",
+        "http://127.0.0.1:60158",
+    ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
@@ -193,4 +207,86 @@ def get_medication_log(log_id: str = None, schedule_id: str = None):
         logs = conn.execute("SELECT * FROM medication_log WHERE schedule_id = ?", (schedule_id,)).fetchall()
         conn.close()
         return [dict(item) for item in logs]
+
+@app.get("/medication_log/{log_id}/log_history")
+def get_medication_log_history(
+    log_id: str,
+    start_date: date,
+    end_date: date
+):
+    if start_date > end_date:
+        raise HTTPException(
+            status_code=400,
+            detail="start_date must not be after end_date"
+        )
+
+    conn = get_db_connection()
+
+    try:
+        logs = conn.execute(
+            """
+            SELECT log_id, schedule_id, action_time, status, side_effect
+            FROM medication_log
+            WHERE log_id = ?
+              AND (
+                substr(action_time, instr(action_time, '/') + 1)
+              ) IS NOT NULL
+            ORDER BY action_time ASC
+            """,
+            (log_id,)
+        ).fetchall()
+
+        result = []
+
+        for log in logs:
+            item = dict(log)
+
+            try:
+                # รูปแบบ action_time: วัน/เดือน/ปี ชั่วโมง:นาที
+                action_date = datetime.strptime(
+                    item["action_time"].strip(),
+                    "%d/%m/%Y %H:%M"
+                ).date()
+                
+            except (ValueError, TypeError):
+                try:
+                    action_date = datetime.strptime(
+                        item["action_time"],
+                        "%d/%m/%Y %H:%M"
+                    ).date()
+                except (ValueError, TypeError):
+                    continue
+
+            if start_date <= action_date <= end_date:
+                result.append(item)
+
+        return result
+
+    finally:
+        conn.close()
+        
+@app.delete("/medication_logs/{log_id}")
+def delete_medication_log(log_id: str):
+    conn = get_db_connection()
+
+    try:
+        cursor = conn.execute(
+            "DELETE FROM medication_log WHERE log_id = ?",
+            (log_id,)
+        )
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Log not found"
+            )
+
+        return {
+            "message": "Medication log deleted successfully",
+            "log_id": log_id
+        }
+
+    finally:
+        conn.close()
     
