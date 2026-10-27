@@ -34,11 +34,104 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     'รายการที่ผ่านมาแล้ว',
   ];
 
-  List<Appointment> myAppointments = [
-    Appointment(appid: '01', dateStr: '10/11/2026', timeStr: '09:00', status: 'รอยืนยัน'),
-    Appointment(appid: '02', dateStr: '17/11/2026', timeStr: '14:30', status: 'รอยืนยัน'),
-    Appointment(appid: '03', dateStr: '24/11/2026', timeStr: '11:00', status: 'ยืนยันแล้ว'),
-  ];
+  List<Appointment> myAppointments = [];
+
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppointments();
+  }
+
+  Future<void> _loadAppointments() async {
+    print('1. เริ่มเรียก API');
+
+    try {
+      final data = await ApiService.getAppointments(userId: 16,)
+          .timeout(const Duration(seconds: 10));
+
+      print('2. API ตอบกลับแล้ว');
+      print('3. จำนวนรายการ: ${data.length}');
+
+      final appointments = data.map((json) {
+        final map = Map<String, dynamic>.from(json as Map);
+
+        return Appointment(
+          appid: map['appointment_id'].toString(),
+          dateStr: _formatDate(
+            map['appointment_date'].toString(),
+          ),
+          timeStr: _formatTime(
+            map['appointment_time'].toString(),
+          ),
+          status: _formatStatus(
+            map['status']?.toString() ?? 'รอยืนยัน',
+          ),
+        );
+      }).toList();
+
+      print('4. แปลงข้อมูลเสร็จแล้ว');
+
+      if (!mounted) return;
+
+      setState(() {
+        myAppointments = appointments;
+        errorMessage = null;
+      });
+
+      print('5. อัปเดตหน้าจอแล้ว');
+    } catch (e) {
+      print('เกิดข้อผิดพลาด: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = e.toString();
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _formatDate(String value) {
+    final date = DateTime.tryParse(value);
+
+    if (date != null) {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+
+    return value;
+  }
+
+  String _formatTime(String value) {
+    final parts = value.split(':');
+
+    if (parts.length >= 2) {
+      return '${parts[0].padLeft(2, '0')}:'
+          '${parts[1].padLeft(2, '0')}';
+    }
+
+    return value;
+  }
+
+  String _formatStatus(String value) {
+    switch (value.toLowerCase()) {
+      case 'pending':
+        return 'รอยืนยัน';
+      case 'confirmed':
+        return 'ยืนยันแล้ว';
+      case 'rescheduled':
+        return 'เลื่อนแล้ว';
+      default:
+        return value;
+    }
+  }
 
   // 3. Logic การทำงานเมื่อกดปุ่มยืนยันนัดหมาย (เปลี่ยนข้อมูลเฉพาะบนหน้าจอเครื่อง)
   void _handleConfirmButton(String id) {
@@ -59,6 +152,110 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
         duration: const Duration(seconds: 1),
       ),
     );
+  }
+
+  Future<void> _handleReappointment(Appointment item) async {
+    final selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(
+        const Duration(days: 1),
+      ),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(
+        const Duration(days: 365),
+      ),
+      helpText: 'เลือกวันนัดหมายใหม่',
+    );
+
+    if (selectedDate == null || !mounted) return;
+
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      helpText: 'เลือกเวลานัดหมายใหม่',
+    );
+
+    if (selectedTime == null || !mounted) return;
+
+    final date = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+
+    final time = TimeOfDay(
+      hour: selectedTime.hour,
+      minute: selectedTime.minute,
+    );
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ยืนยันการเลื่อนนัด'),
+        content: Text(
+          'วันที่ ${date.day}/${date.month}/${date.year}\n'
+              'เวลา ${time.format(context)} น.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, true),
+            child: const Text('ยืนยัน'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ApiService.reappointment(
+        appointmentId: item.appid,
+        appointmentDate:
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-'
+            '${date.day.toString().padLeft(2, '0')}',
+        appointmentTime:
+        '${time.hour.toString().padLeft(2, '0')}:'
+            '${time.minute.toString().padLeft(2, '0')}',
+      );
+
+      setState(() {
+        final index = myAppointments.indexWhere(
+              (appointment) => appointment.appid == item.appid,
+        );
+
+        if (index != -1) {
+          myAppointments[index] = Appointment(
+            appid: item.appid,
+            dateStr:
+            '${date.day}/${date.month}/${date.year}',
+            timeStr:
+            '${time.hour.toString().padLeft(2, '0')}:'
+                '${time.minute.toString().padLeft(2, '0')}',
+            status: 'เลื่อนแล้ว',
+          );
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('เลื่อนวันนัดหมายสำเร็จ'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เลื่อนวันนัดหมายไม่สำเร็จ: $e'),
+        ),
+      );
+    }
   }
 
   @override
@@ -116,6 +313,45 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
 
               Builder(
                 builder: (context) {
+                  if (isLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  if (errorMessage != null) {
+                    return Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'ไม่สามารถโหลดรายการนัดหมายได้',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            errorMessage!,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                isLoading = true;
+                                errorMessage = null;
+                              });
+                              _loadAppointments();
+                            },
+                            child: const Text('ลองอีกครั้ง'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
                   final appointments = _getFilteredAppointments();
 
                   if (appointments.isEmpty) {
@@ -272,15 +508,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
                 child: OutlinedButton(
                   onPressed: isConfirmed
                       ? null
-                      : () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'ระบบจำลองการเลื่อนวันนัดหมาย',
-                        ),
-                      ),
-                    );
-                  },
+                      : () => _handleReappointment(item),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.black,
                     side: const BorderSide(color: Color(0x75294549), width: 2),
