@@ -121,13 +121,21 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
   }
 
   String _formatStatus(String value) {
-    switch (value.toLowerCase()) {
+    switch (value.trim().toLowerCase()) {
       case 'pending':
+      case 'รอยืนยัน':
         return 'รอยืนยัน';
+
       case 'confirmed':
+      case 'ยืนยัน':
+      case 'ยืนยันแล้ว':
         return 'ยืนยันแล้ว';
+
       case 'rescheduled':
+      case 'เลื่อน':
+      case 'เลื่อนแล้ว':
         return 'เลื่อนแล้ว';
+
       default:
         return value;
     }
