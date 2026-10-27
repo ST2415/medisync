@@ -8,7 +8,7 @@
   },
   "item": [
     {
-      "name": "Get Method : GET all",
+      "name": "Get Method : GET users",
       "request": {
         "method": "GET",
         "header": [],
@@ -30,7 +30,104 @@
       "response": []
     },
     {
-      "name": "Get Method : GET id",
+      "name": "Get Method : GET appointments",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"appointment_date\": \"2026-12-01\",\r\n  \"appointment_time\": \"10:30\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/appointments",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "appointments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET medication_logs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/medication_logs",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "medication_logs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET medicines",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/medicines",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "medicines"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET schedules",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/schedules",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "schedules"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET user_id",
       "request": {
         "method": "GET",
         "header": [],
@@ -51,6 +148,40 @@
             {
               "key": "user_id",
               "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET log_id",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/medication_log/log_1/log_history?start_date=2026-01-01&end_date=2026-12-31",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "medication_log",
+            "log_1",
+            "log_history"
+          ],
+          "query": [
+            {
+              "key": "start_date",
+              "value": "2026-01-01"
+            },
+            {
+              "key": "end_date",
+              "value": "2026-12-31"
             }
           ]
         }

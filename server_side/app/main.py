@@ -158,20 +158,27 @@ class Appointment(BaseModel):
     status: str
 
 @app.get("/appointments")
-def get_appointments(user_id: int):
+def get_appointments(user_id: int | None = None):
     conn = get_db_connection()
 
-    appointments = conn.execute(
-        """
-        SELECT appointment_id, user_id,
-               appointment_date, appointment_time, status
-        FROM appointments
-        WHERE user_id = ?
-        ORDER BY appointment_date, appointment_time
-        LIMIT 1000
-        """,
-        (user_id,)
-    ).fetchall()
+    if user_id is not None:
+        appointments = conn.execute(
+            """
+            SELECT appointment_id, user_id,
+                   appointment_date, appointment_time, status
+            FROM appointments
+            WHERE user_id = ?
+            ORDER BY appointment_date, appointment_time
+            """,
+            (user_id,)
+        ).fetchall()
+    else:
+        appointments = conn.execute(
+            """
+            SELECT *
+            FROM appointments
+            """
+        ).fetchall()
 
     conn.close()
     return [dict(row) for row in appointments]
