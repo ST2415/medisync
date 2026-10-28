@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: 'Kanit',
       ),
-      home: const HomePage(),
+      home: HomePage(),
     );
   }
 }
