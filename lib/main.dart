@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'MediSync',
       theme: ThemeData(
-        fontFamily: 'Kanit',
+        fontFamily: 'Prompt',
       ),
       home: HomePage(),
     );

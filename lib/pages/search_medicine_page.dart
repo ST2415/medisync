@@ -268,13 +268,13 @@ class _MedicineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. ดึงชื่อยา
+    //  ดึงชื่อยา
     final String name = (itemData['trade_name'] ??
         itemData['name'] ??
         'ไม่ระบุชื่อยา')
         .toString();
 
-    // 2. ดึงเวลาทานยา
+    // ดึงเวลาทานยา
     final String rawTime = (itemData['instructions'] ??
         itemData['time_to_take'] ??
         itemData['usage_time'] ??

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:medisync/pages/homepage_page.dart';
 import 'package:medisync/pages/history_table_list_page.dart';
 import 'package:medisync/pages/search_medicine_page.dart';
@@ -302,6 +301,37 @@ class _MedicineDetailPageState
             buildDetailRow('ผลข้างเคียง', sideEffects),
             buildDetailRow('ข้อควรระวัง', precautions),
             buildDetailRow('ตัวยาสำคัญ', activeIngredient),
+
+            const SizedBox(height: 20),
+
+            // ปุ่มเพิ่มยา
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  //  Action เมื่อกดเพิ่มยา
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('เพิ่มยา $name เรียบร้อยแล้ว')),
+                  );
+                },
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  'เพิ่มรายการยา',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF294549),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

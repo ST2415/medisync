@@ -62,6 +62,112 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // แก้ไขชื่อยาและจำนวน
+  void _showEditMedicineDialog() {
+    final nameController = TextEditingController(text: currentMedicineName);
+    final dosageController = TextEditingController(text: currentDosage.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('แก้ไขการบันทึกการกินยา'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'ชื่อยา',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: dosageController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'จำนวน (เม็ด)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF294549),
+              ),
+              onPressed: () {
+                setState(() {
+                  currentMedicineName = nameController.text;
+                  currentDosage = int.tryParse(dosageController.text) ?? currentDosage;
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('แก้ไขข้อมูลเรียบร้อยแล้ว')),
+                );
+              },
+              child: const Text('บันทึก', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    ).then((_) {
+      // เพิ่มการ คืนหน่วยความจำ (dispose) หลังจาก Dialog ปิดลง
+      nameController.dispose();
+      dosageController.dispose();
+    });
+  }
+
+  // กรอกบันทึกอาการ
+  void _showSymptomDialog() {
+    final symptomController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('บันทึกอาการ'),
+          content: TextField(
+            controller: symptomController,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              hintText: 'กรอกรายละเอียดอาการ เช่น ปวดหัว, คลื่นไส้...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF294549),
+              ),
+              onPressed: () {
+                final inputSymptom = symptomController.text;
+                if (inputSymptom.isNotEmpty) {
+                  // ส่งข้อมูล inputSymptom ไปยัง API
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('บันทึกอาการเรียบร้อยแล้ว')),
+                  );
+                }
+              },
+              child: const Text('บันทึก', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,7 +179,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -151,7 +257,7 @@ class _HomePageState extends State<HomePage> {
 
                     Row(
                       children: [
-                        // ปุ่มเพิ่มรายการยา -> ไปหน้า SearchMedicinePage
+                        // ปุ่มเพิ่มรายการยาไปหน้า SearchMedicinePage
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () {
@@ -178,7 +284,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(width: 12),
 
-                        // ปุ่มดูตารางยาทั้งหมด -> ไปหน้า HistoryTableListPage
+                        // ปุ่มดูตารางยาทั้งหมดไปหน้า HistoryTableListPage
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
@@ -242,11 +348,9 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ],
                         ),
-                        // ปุ่มไอคอนแก้ไขรายการยา
+                        // ปุ่มแก้ไขรายการยา
                         InkWell(
-                          onTap: () {
-                            // ใส่ Action แก้ไขรายการยาตรงนี้
-                          },
+                          onTap: _showEditMedicineDialog,
                           child: const CircleAvatar(
                             radius: 18,
                             backgroundColor: Color(0xFF294549),
@@ -288,9 +392,7 @@ class _HomePageState extends State<HomePage> {
                         // ปุ่มบันทึกอาการ
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              // ใส่ Action บันทึกอาการข้างเคียงตรงนี้
-                            },
+                            onPressed: _showSymptomDialog,
                             label: const Text(
                               'บันทึกอาการ',
                               style: TextStyle(color: Colors.black87),
@@ -317,6 +419,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+
 
       // Bottom Navigation Bar
       bottomNavigationBar: NavigationBar(
