@@ -26,6 +26,7 @@ class _HomePageState extends State<HomePage> {
   // ข้อมูลยาช่วงเช้าตัวแรกสำหรับกล่องล่าง
   String currentMedicineName = "-";
   int currentDosage = 0;
+  bool isTaken = false;
 
   @override
   void initState() {
@@ -62,36 +63,17 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // แก้ไขชื่อยาและจำนวน
+  // เปลี่ยนสถานะการกินยา
   void _showEditMedicineDialog() {
-    final nameController = TextEditingController(text: currentMedicineName);
-    final dosageController = TextEditingController(text: currentDosage.toString());
-
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('แก้ไขการบันทึกการกินยา'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'ชื่อยา',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: dosageController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'จำนวน (เม็ด)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
+          title: const Text('แก้ไขสถานะการกินยา'),
+          content: Text(
+            isTaken
+                ? 'ต้องการเปลี่ยนสถานะเป็น "ยังไม่ได้กิน" ใช่หรือไม่?'
+                : 'ต้องการเปลี่ยนสถานะเป็น "กินยาแล้ว" ใช่หรือไม่?',
           ),
           actions: [
             TextButton(
@@ -104,24 +86,25 @@ class _HomePageState extends State<HomePage> {
               ),
               onPressed: () {
                 setState(() {
-                  currentMedicineName = nameController.text;
-                  currentDosage = int.tryParse(dosageController.text) ?? currentDosage;
+                  isTaken = !isTaken;
                 });
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('แก้ไขข้อมูลเรียบร้อยแล้ว')),
+                  SnackBar(
+                    content: Text(
+                      isTaken
+                          ? 'บันทึกเป็น "กินยาแล้ว"'
+                          : 'เปลี่ยนสถานะเป็น "ยังไม่ได้กิน" เรียบร้อยแล้ว',
+                    ),
+                  ),
                 );
               },
-              child: const Text('บันทึก', style: TextStyle(color: Colors.white)),
+              child: const Text('ตกลง', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
       },
-    ).then((_) {
-      // เพิ่มการ คืนหน่วยความจำ (dispose) หลังจาก Dialog ปิดลง
-      nameController.dispose();
-      dosageController.dispose();
-    });
+    );
   }
 
   // กรอกบันทึกอาการ
@@ -367,19 +350,31 @@ class _HomePageState extends State<HomePage> {
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () {
+                              setState(() {
+                                isTaken = !isTaken;
+                              });
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('บันทึกการกินยาเรียบร้อยแล้ว'),
+                                SnackBar(
+                                  content: Text(
+                                    isTaken
+                                        ? 'บันทึกการกินยาเรียบร้อยแล้ว'
+                                        : 'เปลี่ยนสถานะเป็น "ยังไม่ได้กินยา" แล้ว',
+                                  ),
                                 ),
                               );
                             },
-                            icon: const Icon(Icons.check, color: Colors.white),
-                            label: const Text(
-                              'กินยาแล้ว',
-                              style: TextStyle(color: Colors.white),
+                            icon: Icon(
+                              isTaken ? Icons.check : Icons.circle_outlined,
+                              color: Colors.white,
+                            ),
+                            label: Text(
+                              isTaken ? 'กินยาแล้ว' : 'ยังไม่ได้กินยา',
+                              style: const TextStyle(color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4E7F90),
+                              backgroundColor: isTaken
+                                  ? const Color(0xFF4E7F90)
+                                  : Color(0xFF4A807E),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
@@ -419,7 +414,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-
 
       // Bottom Navigation Bar
       bottomNavigationBar: NavigationBar(
