@@ -112,7 +112,18 @@ def get_user(schedule_id: str = None, user_id: int = None):
         if schedule is None:
             raise HTTPException(status_code=404, detail="Schedule not found")
         return dict(schedule)
-
+    
+@app.delete("/schedules/{schedule_id}")
+def delete_schedule(schedule_id: str):
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute("DELETE FROM schedules WHERE schedule_id = ?", (schedule_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Schedule not found")
+        conn.commit()
+        return {"message": "ลบตารางการทานยาสำเร็จ", "schedule_id": schedule_id}
+    finally:
+        conn.close()
 
 # medicine
 class Medicine(BaseModel):
@@ -341,7 +352,9 @@ def get_medication_log_history(
 
     finally:
         conn.close()
-        
+
+
+# delete        
 @app.delete("/medication_log/{log_id}")
 def delete_medication_log(log_id: str):
     conn = get_db_connection()
@@ -366,3 +379,46 @@ def delete_medication_log(log_id: str):
 
     finally:
         conn.close()
+
+@app.delete("/medication_logs/{log_id}")
+def delete_medication_log(log_id: str):
+    conn = get_db_connection()
+    try:
+        cursor = conn.execute("DELETE FROM medication_log WHERE log_id = ?", (log_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Medication log not found")
+        conn.commit()
+        return {"message": "ลบประวัติการบันทึกยาสำเร็จ", "log_id": log_id}
+    finally:
+        conn.close()
+
+# post
+@app.post("/medication_logs", status_code=201)
+def create_medication_log(log: MedicationLog):
+    conn = get_db_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO medication_log (log_id, schedule_id, action_time, status, side_effect)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                log.log_id,
+                log.schedule_id,
+                log.action_time,
+                log.status,
+                log.side_effect
+            )
+        )
+        conn.commit()
+        return {
+            "message": "บันทึกประวัติการทานยาสำเร็จ",
+            "data": log.model_dump()
+        }
+    except sqlite3.IntegrityError:
+        raise HTTPException(
+            status_code=400, 
+            detail="log_id นี้ถูกบันทึกในระบบแล้ว"
+        )
+    finally:
+        conn.close()      
