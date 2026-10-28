@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 
@@ -12,18 +11,14 @@ class SearchMedicinePage extends StatefulWidget {
   const SearchMedicinePage({super.key});
 
   @override
-  State<SearchMedicinePage> createState() =>
-      _SearchMedicinePageState();
+  State<SearchMedicinePage> createState() => _SearchMedicinePageState();
 }
 
 class _SearchMedicinePageState extends State<SearchMedicinePage> {
   final MedicineService _medicineService = MedicineService();
-
-  final TextEditingController _searchController =
-  TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   Timer? _debounce;
-
   List<dynamic> medicineList = [];
   bool isLoading = true;
   String? errorMessage;
@@ -49,8 +44,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
     });
 
     try {
-      final results =
-      await _medicineService.searchMedicines(query: query);
+      final results = await _medicineService.searchMedicines(query: query);
 
       if (!mounted) return;
 
@@ -85,7 +79,6 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF4A807E),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -93,7 +86,6 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-
               const Text(
                 'ค้นหายาของคุณ',
                 style: TextStyle(
@@ -102,7 +94,6 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
                   color: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 20),
 
               // ช่องค้นหายา
@@ -155,9 +146,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
                       const SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: () {
-                          _fetchMedicines(
-                            _searchController.text,
-                          );
+                          _fetchMedicines(_searchController.text);
                         },
                         child: const Text('ลองอีกครั้ง'),
                       ),
@@ -179,8 +168,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
                   separatorBuilder: (context, index) =>
                   const SizedBox(height: 16),
                   itemBuilder: (context, index) {
-                    final item =
-                    Map<String, dynamic>.from(
+                    final item = Map<String, dynamic>.from(
                       medicineList[index] as Map,
                     );
 
@@ -200,7 +188,6 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
         selectedIndex: 1,
         backgroundColor: const Color(0xFF294549),
         indicatorColor: Colors.transparent,
-
         onDestinationSelected: (int index) {
           if (index == 0) {
             Navigator.pushReplacement(
@@ -213,21 +200,18 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) =>
-                const HistoryTableListPage(),
+                builder: (context) => const HistoryTableListPage(),
               ),
             );
           } else if (index == 3) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) =>
-                const AppointmentListPage(),
+                builder: (context) => const AppointmentListPage(),
               ),
             );
           }
         },
-
         destinations: const [
           NavigationDestination(
             icon: Icon(
@@ -284,48 +268,50 @@ class _MedicineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String name =
-    (itemData['trade_name'] ??
+    // 1. ดึงชื่อยา
+    final String name = (itemData['trade_name'] ??
         itemData['name'] ??
         'ไม่ระบุชื่อยา')
         .toString();
 
-    final String time =
-    (itemData['time_to_take'] ??
+    // 2. ดึงเวลาทานยา
+    final String rawTime = (itemData['instructions'] ??
+        itemData['time_to_take'] ??
+        itemData['usage_time'] ??
+        itemData['meal_time'] ??
         itemData['category'] ??
-        'ทานตามแพทย์สั่ง')
+        '')
         .toString();
+    final String time = rawTime.isNotEmpty ? rawTime : 'ทานตามแพทย์สั่ง';
 
-    final String quantity =
-    (itemData['dosage'] ??
+    // 3. ดึงปริมาณ/จำนวนเม็ด
+    final String rawQuantity = (itemData['dosage'] ??
+        itemData['amount'] ??
+        itemData['tablet_count'] ??
         itemData['quantity'] ??
-        'ไม่ระบุขนาด')
+        '')
         .toString();
+    final String quantity = rawQuantity.isNotEmpty
+        ? (rawQuantity.contains('เม็ด') ? rawQuantity : 'ครั้งละ $rawQuantity')
+        : 'ไม่ระบุขนาด';
 
-    final dynamic imageValue =
-        itemData['image_url'] ?? itemData['image'];
-
+    // 4. ดึงรูปภาพ
+    final dynamic imageValue = itemData['image_url'] ?? itemData['image'];
     final String? imageUrl = imageValue?.toString();
 
     return GestureDetector(
-      // กดการ์ดเพื่อเปิดหน้ารายละเอียดยา
       onTap: () {
-        // อ่านรหัสยาจากข้อมูล API
         final dynamic tpuCode = itemData['tpu_code'];
 
-        if (tpuCode == null ||
-            tpuCode.toString().trim().isEmpty) {
+        if (tpuCode == null || tpuCode.toString().trim().isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'ไม่พบรหัสยา tpu_code จากฐานข้อมูล',
-              ),
+              content: Text('ไม่พบรหัสยา tpu_code จากฐานข้อมูล'),
             ),
           );
           return;
         }
 
-        // ส่งรหัสยาไปหน้า MedicineDetailPage
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -335,14 +321,12 @@ class _MedicineCard extends StatelessWidget {
           ),
         );
       },
-
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFFBBD7DA),
           borderRadius: BorderRadius.circular(16),
         ),
-
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -354,15 +338,13 @@ class _MedicineCard extends StatelessWidget {
                 color: const Color(0xFF4A4A4A),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: imageUrl != null &&
-                  imageUrl.isNotEmpty
+              child: imageUrl != null && imageUrl.isNotEmpty
                   ? ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder:
-                      (context, error, stackTrace) {
+                  errorBuilder: (context, error, stackTrace) {
                     return const Icon(
                       Icons.image_outlined,
                       size: 44,
@@ -396,6 +378,7 @@ class _MedicineCard extends StatelessWidget {
 
                   const SizedBox(height: 8),
 
+                  // แท็กเวลาทานยา
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 14,
@@ -417,6 +400,7 @@ class _MedicineCard extends StatelessWidget {
 
                   const SizedBox(height: 8),
 
+                  // ข้อความปริมาณการทานยา
                   Text(
                     quantity,
                     style: const TextStyle(
