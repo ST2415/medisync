@@ -84,7 +84,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF4E7F90),
+      backgroundColor: const Color(0xFF4A807E),
 
       body: SafeArea(
         child: Padding(

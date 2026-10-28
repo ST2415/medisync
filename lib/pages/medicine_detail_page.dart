@@ -80,7 +80,7 @@ class _MedicineDetailPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF4E7F90),
+      backgroundColor: const Color(0xFF4A807E),
 
       appBar: AppBar(
         backgroundColor: const Color(0xFF294549),
