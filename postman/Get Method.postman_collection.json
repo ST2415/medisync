@@ -1,10 +1,10 @@
 {
   "info": {
-    "_postman_id": "7443126d-87ec-4ed8-a781-0978d37e2a71",
+    "_postman_id": "59cba82e-aebb-47dc-8c08-1d0f512fcc32",
     "name": "Get Method",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "58994226",
-    "_collection_link": "https://go.postman.co/collection/58994226-7443126d-87ec-4ed8-a781-0978d37e2a71?source=collection_link"
+    "_exporter_id": "58994161",
+    "_collection_link": "https://go.postman.co/collection/58994161-59cba82e-aebb-47dc-8c08-1d0f512fcc32?source=collection_link"
   },
   "item": [
     {
@@ -34,15 +34,6 @@
       "request": {
         "method": "GET",
         "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"appointment_date\": \"2026-12-01\",\r\n  \"appointment_time\": \"10:30\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
         "url": {
           "raw": "http://127.0.0.1:8000/appointments",
           "protocol": "http",
@@ -205,6 +196,41 @@
           "port": "8000",
           "path": [
             "docs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET tpu_code",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Method : GET todat-schedule",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/users/16/today-schedules",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "users",
+            "16",
+            "today-schedules"
           ]
         }
       },
