@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class HomeService {
-
   static const String baseUrl = "http://127.0.0.1:8000";
 
+  // 1. ฟังก์ชันดึงข้อมูล Dashboard หลัก
   Future<Map<String, dynamic>> fetchDashboardData(int userId) async {
     try {
       final userResponse = await http.get(Uri.parse('$baseUrl/user?user_id=$userId'));
@@ -18,7 +18,6 @@ class HomeService {
         final rawUserData = jsonDecode(utf8.decode(userResponse.bodyBytes));
         final rawScheduleData = jsonDecode(utf8.decode(scheduleResponse.bodyBytes));
 
-
         Map<String, dynamic> userData = {};
         if (rawUserData is List && rawUserData.isNotEmpty) {
           userData = rawUserData.first;
@@ -26,22 +25,17 @@ class HomeService {
           userData = rawUserData;
         }
 
-
         String userName = userData['name'] ??
             userData['user_name'] ??
             userData['username'] ??
             'ไม่ระบุชื่อ';
 
-        // Schedules
+        // แปลงข้อมูล schedules ให้เป็น List
         List<dynamic> schedules = [];
         if (rawScheduleData is List) {
           schedules = rawScheduleData;
-        } else if (rawScheduleData is Map<String, dynamic>) {
-          // กรณี backend ส่งมาเป็น { "data": [...] } หรือ { "schedules": [...] }
-          schedules = rawScheduleData['data'] ??
-              rawScheduleData['schedules'] ??
-              rawScheduleData['schedule'] ??
-              rawScheduleData['results'] ?? [];
+        } else if (rawScheduleData is Map && rawScheduleData.containsKey('data')) {
+          schedules = rawScheduleData['data'] as List<dynamic>;
         }
 
         int mCount = 0;
@@ -58,7 +52,7 @@ class HomeService {
             mCount++;
             if (firstMedDesc == "ไม่มีรายการยา") {
               firstDosage = item['dosage_amount'] ?? item['dosage'] ?? 1;
-              firstMedDesc = item['medicine_name'] ?? "รหัสยา TPU: ${item['tpu_code']}";
+              firstMedDesc = item['trade_name'] ?? item['medicine_name'] ?? "รหัสยา TPU: ${item['tpu_code']}";
               firstMedImage = item['image_url'] ?? item['image'] ?? "";
             }
           } else if (time.contains('กลางวัน')) {
@@ -101,5 +95,101 @@ class HomeService {
       debugPrint("Error in HomeService: $e");
     }
     return {};
+  }
+
+  // 2. ฟังก์ชันแยกสำหรับดึงรายการยาวันนี้ตาม path /users/user_id/today-schedules
+  Future<List<dynamic>> fetchTodaySchedules(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/users/$userId/today-schedules'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (data is List) {
+          return data;
+        } else if (data is Map && data.containsKey('data')) {
+          return data['data'] as List<dynamic>;
+        }
+        return [];
+      } else {
+        return [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching today schedules: $e");
+      return [];
+    }
+  }
+
+  // บันทึก,อัปเดตสถานะการกินยา
+  Future<bool> updateMedicationStatus({
+    required int userId,
+    required int scheduleId,
+    required bool isTaken,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/medication_logs'),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({
+          'user_id': userId,
+          'schedule_id': scheduleId,
+          'status': isTaken ? 'taken' : 'skipped',
+          'logged_at': DateTime.now().toIso8601String(),
+        }),
+      );
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      debugPrint("Error updating medication status: $e");
+      return false;
+    }
+  }
+
+  Future<String?> addMedicationLog({
+    required int userId,
+    required String scheduleId,
+    required String status,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/medication_logs'),
+        headers: {'Content-Type': 'application/json; charset=UTF-8'},
+        body: jsonEncode({
+          'user_id': userId,
+          'schedule_id': scheduleId.toString(),
+          'status': status,
+          'logged_at': DateTime.now().toIso8601String(),
+        }),
+      );
+
+      debugPrint("POST Log Response Status: ${response.statusCode}");
+      debugPrint("POST Log Response Body: ${response.body}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        if (data is Map<String, dynamic>) {
+          return data['log_id']?.toString() ?? data['id']?.toString();
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error in addMedicationLog: $e");
+      return null;
+    }
+  }
+
+  // ลบข้อมูลการกินยาตาม log_id (ตรงตามตรรกะในประวัติการกินยา)
+  Future<bool> deleteMedicationLog(String logId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/medication_logs/$logId'),
+      );
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      debugPrint("Error deleting medication log: $e");
+      return false;
+    }
   }
 }

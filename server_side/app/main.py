@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import sqlite3
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+import uuid
 
 app = FastAPI(
     title="Medisync"
@@ -107,6 +108,65 @@ def get_user(schedule_id: str = None, user_id: int = None):
         if schedule is None:
             raise HTTPException(status_code=404, detail="Schedule not found")
         return dict(schedule)
+    
+@app.get("/users/{user_id}/today-schedules")
+def get_today_schedules(user_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    today = datetime.now().strftime("%d/%m/%Y")
+
+    query = """
+        SELECT
+            s.schedule_id,
+            s.user_id,
+            s.time_to_take,
+            s.dosage_amount,
+            m.tpu_code,
+            m.trade_name,
+            m.image_url,
+
+            (
+                SELECT
+                    CASE
+                        WHEN ml.status = 'taken' THEN 1
+                        ELSE 0
+                    END
+                FROM medication_log ml
+                WHERE ml.schedule_id = s.schedule_id
+                  AND substr(ml.action_time, 1, 10) = ?
+                ORDER BY ml.rowid DESC
+                LIMIT 1
+            ) AS is_taken,
+
+            (
+                SELECT ml.log_id
+                FROM medication_log ml
+                WHERE ml.schedule_id = s.schedule_id
+                  AND substr(ml.action_time, 1, 10) = ?
+                ORDER BY ml.rowid DESC
+                LIMIT 1
+            ) AS log_id
+
+        FROM schedules s
+        JOIN medicines m
+            ON s.tpu_code = m.tpu_code
+        WHERE s.user_id = ?
+    """
+
+    try:
+        rows = cursor.execute(
+            query,
+            (today, today, user_id)
+        ).fetchall()
+
+        return [dict(row) for row in rows]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        conn.close()
     
 @app.delete("/schedules/{schedule_id}")
 def delete_schedule(schedule_id: str):
@@ -348,6 +408,13 @@ def get_medication_log_history(
     finally:
         conn.close()
 
+# post MedicationLog
+class MedicationLogRequest(BaseModel):
+    user_id: int
+    schedule_id: str
+    status: str
+    logged_at: datetime | None = None
+
 
 # delete        
 @app.delete("/medication_log/{log_id}")
@@ -388,32 +455,50 @@ def delete_medication_log(log_id: str):
         conn.close()
 
 # post
+
 @app.post("/medication_logs", status_code=201)
-def create_medication_log(log: MedicationLog):
+def create_medication_log(log: MedicationLogRequest):
     conn = get_db_connection()
+
     try:
+        # สร้าง ID สำหรับรายการบันทึกยา
+        log_id = str(uuid.uuid4())
+
+        # ใช้เวลาที่ Flutter ส่งมา หรือใช้เวลาปัจจุบัน
+        action_time = (
+            log.logged_at or datetime.now()
+        ).strftime("%d/%m/%Y %H:%M")
+
+        # บันทึกข้อมูลลงฐานข้อมูล
         conn.execute(
             """
-            INSERT INTO medication_log (log_id, schedule_id, action_time, status, side_effect)
+            INSERT INTO medication_log
+            (log_id, schedule_id, action_time, status, side_effect)
             VALUES (?, ?, ?, ?, ?)
             """,
             (
-                log.log_id,
+                log_id,
                 log.schedule_id,
-                log.action_time,
+                action_time,
                 log.status,
-                log.side_effect
+                None
             )
         )
+
         conn.commit()
+
         return {
-            "message": "บันทึกประวัติการทานยาสำเร็จ",
-            "data": log.model_dump()
+            "message": "บันทึกข้อมูลสำเร็จ",
+            "log_id": log_id
         }
-    except sqlite3.IntegrityError:
+
+    except sqlite3.IntegrityError as e:
+        conn.rollback()
         raise HTTPException(
-            status_code=400, 
-            detail="log_id นี้ถูกบันทึกในระบบแล้ว"
+            status_code=400,
+            detail=f"บันทึกข้อมูลไม่สำเร็จ: {str(e)}"
         )
+
     finally:
-        conn.close()      
+        conn.close()
+

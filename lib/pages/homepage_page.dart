@@ -12,7 +12,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // สร้างอินสแตนซ์เรียกใช้ HomeService
   final HomeService _homeService = HomeService();
 
   bool isLoading = true;
@@ -23,8 +22,15 @@ class _HomePageState extends State<HomePage> {
   int lunchCount = 0;
   int dinnerCount = 0;
 
+  // URL รูปภาพของยาแต่ละช่วงเวลา
+  String? morningImage;
+  String? lunchImage;
+  String? dinnerImage;
+
   // ข้อมูลยาช่วงเช้าตัวแรกสำหรับกล่องล่าง
-  String currentMedicineName = "-";
+  String? currentScheduleId;
+  String? currentLogId; // เก็บ log_id สำหรับการอัปเดต/ลบรายการกินยา
+  String currentMedicineName = "ไม่มีรายการยา";
   int currentDosage = 0;
   bool isTaken = false;
 
@@ -34,7 +40,7 @@ class _HomePageState extends State<HomePage> {
     _fetchDashboardData();
   }
 
-  // วันที่จริง
+  // วันที่จริงภาษาไทย
   String _getFormattedTodayDate() {
     final now = DateTime.now();
 
@@ -71,27 +77,99 @@ class _HomePageState extends State<HomePage> {
     return '$dayNameที่ $dayNum $monthName $buddhistYear';
   }
 
-  // ดึงข้อมูลผ่าน HomeService
+  // ดึงข้อมูลผ่าน HomeService (แก้ไข Logic รวมเม็ดยาและรูปภาพ)
   Future<void> _fetchDashboardData() async {
     setState(() {
       isLoading = true;
     });
 
     const int targetUserId = 16;
-    final data = await _homeService.fetchDashboardData(targetUserId);
 
-    if (mounted) {
-      if (data.isNotEmpty) {
+    try {
+      final data = await _homeService.fetchDashboardData(targetUserId);
+      final List<dynamic> todaySchedules =
+      await _homeService.fetchTodaySchedules(targetUserId);
+
+      if (mounted) {
+        int mCount = 0;
+        int lCount = 0;
+        int dCount = 0;
+        String? mImg;
+        String? lImg;
+        String? dImg;
+        String firstMorningMed = "ไม่มีรายการยา";
+        int firstMorningDosage = 0;
+        String? firstMorningScheduleId;
+        String? firstMorningLogId;
+        bool firstMorningTaken = false;
+
+        // วน Loop อ่านรายการยาทั้งหมดโดยไม่มี break ตัดการทำงาน
+        for (var item in todaySchedules) {
+          final String timeToTake = (item['time_to_take'] ??
+              item['time'] ??
+              item['meal_time'] ??
+              '')
+              .toString();
+
+          // รวม URL รูปภาพเต็ม (ต่อ http://127.0.0.1:8000 กรณี Backend ส่งมาเป็น Relative Path)
+          String? rawImg = item['image_url'] ?? item['image'] ?? item['picture'];
+          if (rawImg != null && rawImg.isNotEmpty && !rawImg.startsWith('http')) {
+            rawImg = '${HomeService.baseUrl}${(rawImg.startsWith('/') ? '' : '/')}$rawImg';
+          }
+
+          // แปลงจำนวนเม็ดของยาตัวนั้นๆ
+          final int dosage = int.tryParse(
+              (item['dosage_amount'] ?? item['dosage'] ?? 1).toString()) ?? 1;
+
+          if (timeToTake.contains('เช้า')) {
+            mCount += dosage; // บวกจำนวนเม็ดรวม
+            mImg ??= rawImg;  // เก็บรูปภาพใบแรกที่เจอ
+
+            if (firstMorningMed == "ไม่มีรายการยา") {
+              firstMorningScheduleId = item['schedule_id']?.toString();
+              firstMorningLogId =
+                  item['log_id']?.toString() ?? item['logId']?.toString();
+              firstMorningMed = (item['trade_name'] ??
+                  item['medicine_name'] ??
+                  item['name'] ??
+                  'ไม่ระบุชื่อยา')
+                  .toString();
+              firstMorningDosage = dosage;
+              firstMorningTaken = item['is_taken'] == true ||
+                  item['is_taken'] == 1 ||
+                  item['status'] == 'taken' ||
+                  item['status'] == 1;
+            }
+          } else if (timeToTake.contains('กลางวัน')) {
+            lCount += dosage; // บวกจำนวนเม็ดรวม
+            lImg ??= rawImg;  // เก็บรูปภาพใบแรกที่เจอ
+          } else if (timeToTake.contains('เย็น')) {
+            dCount += dosage; // บวกจำนวนเม็ดรวม
+            dImg ??= rawImg;  // เก็บรูปภาพใบแรกที่เจอ
+          }
+        }
+
+        debugPrint('Morning Schedule ID: $firstMorningScheduleId');
+        debugPrint('Morning Log ID: $firstMorningLogId');
+
         setState(() {
-          userName = data['userName'];
-          morningCount = data['morningCount'] ?? 0;
-          lunchCount = data['lunchCount'] ?? 0;
-          dinnerCount = data['dinnerCount'] ?? 0;
-          currentMedicineName = data['currentMedicineName'] ?? '-';
-          currentDosage = data['currentDosage'] ?? 0;
+          userName = data['userName'] ?? userName;
+          morningCount = mCount;
+          lunchCount = lCount;
+          dinnerCount = dCount;
+          morningImage = mImg;
+          lunchImage = lImg;
+          dinnerImage = dImg;
+          currentScheduleId = firstMorningScheduleId;
+          currentLogId = firstMorningLogId;
+          currentMedicineName = firstMorningMed;
+          currentDosage = firstMorningDosage;
+          isTaken = firstMorningTaken;
           isLoading = false;
         });
-      } else {
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
           userName = "ข้อมูลล้มเหลว";
           isLoading = false;
@@ -100,48 +178,95 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // เปลี่ยนสถานะการกินยา
-  void _showEditMedicineDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('แก้ไขสถานะการกินยา'),
-          content: Text(
-            isTaken
-                ? 'ต้องการเปลี่ยนสถานะเป็น "ยังไม่ได้กิน" ใช่หรือไม่?'
-                : 'ต้องการเปลี่ยนสถานะเป็น "กินยาแล้ว" ใช่หรือไม่?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF294549),
-              ),
-              onPressed: () {
-                setState(() {
-                  isTaken = !isTaken;
-                });
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      isTaken
-                          ? 'บันทึกเป็น "กินยาแล้ว"'
-                          : 'เปลี่ยนสถานะเป็น "ยังไม่ได้กิน" เรียบร้อยแล้ว',
-                    ),
-                  ),
-                );
-              },
-              child: const Text('ตกลง', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+  // ฟังก์ชันสลับสถานะการกินยา พร้อม Alert ยืนยันเมื่อต้องการลบ/ยกเลิก
+  Future<void> _toggleTakeMedicine() async {
+    debugPrint('กดปุ่มกินยาแล้ว');
+    debugPrint('scheduleId: $currentScheduleId');
+    debugPrint('logId: $currentLogId');
+
+    if (!isTaken) {
+      try {
+        final newLogId = await _homeService.addMedicationLog(
+          userId: 16,
+          scheduleId: currentScheduleId!,
+          status: 'taken',
         );
-      },
+
+        if (!mounted) return;
+
+        if (newLogId != null) {
+          setState(() {
+            isTaken = true;
+            currentLogId = newLogId;
+          });
+
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('บันทึกเป็น "กินยาแล้ว" เรียบร้อยแล้ว')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('ไม่สามารถบันทึกข้อมูลการกินยาได้')),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('บันทึกไม่สำเร็จ: $e')),
+        );
+      }
+      return;
+    }
+
+    // กดเพื่อยืนยันลบ/ยกเลิกสถานะการกินยา (DELETE)
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ยกเลิกรายการกินยา'),
+        content:
+        const Text('ต้องการเปลี่ยนสถานะเป็น "ยังไม่ได้กินยา" ใช่หรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF294549),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('ตกลง', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
+
+    if (confirmed != true) return;
+
+    try {
+      if (currentLogId != null) {
+        await _homeService.deleteMedicationLog(currentLogId!);
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        isTaken = false;
+        currentLogId = null;
+      });
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('เปลี่ยนสถานะเป็น "ยังไม่ได้กินยา" เรียบร้อยแล้ว')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('ยกเลิกรายการไม่สำเร็จ: $e')),
+      );
+    }
   }
 
   // กรอกบันทึกอาการ
@@ -173,7 +298,6 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 final inputSymptom = symptomController.text;
                 if (inputSymptom.isNotEmpty) {
-                  // ส่งข้อมูล inputSymptom ไปยัง API
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('บันทึกอาการเรียบร้อยแล้ว')),
@@ -195,7 +319,8 @@ class _HomePageState extends State<HomePage> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -260,69 +385,75 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 4),
 
-                    // เรียกใช้ฟังก์ชันแปลงวันที่จริง
                     Text(
                       _getFormattedTodayDate(),
-                      style: const TextStyle(fontSize: 16, color: Color(0xFF294549)),
+                      style: const TextStyle(
+                          fontSize: 16, color: Color(0xFF294549)),
                     ),
                     const SizedBox(height: 20),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildMealItem('เช้า', morningCount.toString()),
-                        _buildMealItem('กลางวัน', lunchCount.toString()),
-                        _buildMealItem('เย็น', dinnerCount.toString()),
+                        _buildMealItem('เช้า', morningCount.toString(), morningImage),
+                        _buildMealItem('กลางวัน', lunchCount.toString(), lunchImage),
+                        _buildMealItem('เย็น', dinnerCount.toString(), dinnerImage),
                       ],
                     ),
                     const SizedBox(height: 20),
 
                     Row(
                       children: [
-                        // ปุ่มเพิ่มรายการยาไปหน้า SearchMedicinePage
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const SearchMedicinePage(),
+                                  builder: (context) =>
+                                  const SearchMedicinePage(),
                                 ),
                               );
+                              _fetchDashboardData();
                             },
-                            icon: const Icon(Icons.add, color: Color(0xFF294549)),
+                            icon: const Icon(Icons.add,
+                                color: Color(0xFF294549)),
                             label: const Text(
                               'เพิ่มรายการยา',
                               style: TextStyle(color: Color(0xFF294549)),
                             ),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF294549)),
+                              side: const BorderSide(
+                                  color: Color(0xFF294549)),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
 
-                        // ปุ่มดูตารางยาทั้งหมดไปหน้า HistoryTableListPage
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const HistoryTableListPage(),
+                                  builder: (context) =>
+                                  const HistoryTableListPage(),
                                 ),
                               );
+                              _fetchDashboardData();
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4E7F90),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                             ),
                             child: const Text(
                               'ดูตารางยาทั้งหมด',
@@ -366,17 +497,19 @@ class _HomePageState extends State<HomePage> {
                             const SizedBox(height: 4),
                             Text(
                               '$currentMedicineName $currentDosage เม็ด',
-                              style: const TextStyle(fontSize: 15, color: Colors.black54),
+                              style: const TextStyle(
+                                  fontSize: 15, color: Colors.black54),
                             ),
                           ],
                         ),
-                        // ปุ่มแก้ไขรายการยา
+                        // ปุ่มไอคอนดินสอแก้ไขสถานะ
                         InkWell(
-                          onTap: _showEditMedicineDialog,
+                          onTap: _toggleTakeMedicine,
                           child: const CircleAvatar(
                             radius: 18,
                             backgroundColor: Color(0xFF294549),
-                            child: Icon(Icons.edit, size: 18, color: Colors.white),
+                            child: Icon(Icons.edit,
+                                size: 18, color: Colors.white),
                           ),
                         ),
                       ],
@@ -385,23 +518,10 @@ class _HomePageState extends State<HomePage> {
 
                     Row(
                       children: [
-                        // ปุ่มกินยาแล้ว
+                        // ปุ่มกินยาแล้ว / ยังไม่ได้กินยา
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                isTaken = !isTaken;
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    isTaken
-                                        ? 'บันทึกการกินยาเรียบร้อยแล้ว'
-                                        : 'เปลี่ยนสถานะเป็น "ยังไม่ได้กินยา" แล้ว',
-                                  ),
-                                ),
-                              );
-                            },
+                            onPressed: _toggleTakeMedicine,
                             icon: Icon(
                               isTaken ? Icons.check : Icons.circle_outlined,
                               color: Colors.white,
@@ -436,11 +556,13 @@ class _HomePageState extends State<HomePage> {
                               color: Colors.black87,
                             ),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.black54),
+                              side:
+                              const BorderSide(color: Colors.black54),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
                         ),
@@ -454,12 +576,11 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      // Bottom Navigation Bar
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
         backgroundColor: const Color(0xFF294549),
         indicatorColor: Colors.transparent,
-        onDestinationSelected: (int index) {
+        onDestinationSelected: (int index) async {
           if (index == 0) return;
 
           Widget targetPage;
@@ -477,34 +598,42 @@ class _HomePageState extends State<HomePage> {
               return;
           }
 
-          Navigator.push(
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => targetPage),
           );
+          _fetchDashboardData();
         },
         destinations: const <Widget>[
           NavigationDestination(
-            selectedIcon: Icon(Icons.home_outlined, color: Color(0xFF90C2B7), size: 36),
-            icon: Icon(Icons.home_outlined, color: Color(0xFF90C2B7), size: 36),
+            selectedIcon:
+            Icon(Icons.home_outlined, color: Color(0xFF90C2B7), size: 36),
+            icon:
+            Icon(Icons.home_outlined, color: Color(0xFF90C2B7), size: 36),
             label: "",
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.search, color: Color(0xFF4A807E), size: 36),
+            selectedIcon:
+            Icon(Icons.search, color: Color(0xFF4A807E), size: 36),
             icon: Icon(Icons.search, color: Color(0xFF4A807E), size: 36),
             label: "",
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.history, color: Color(0xFF4A807E), size: 36),
+            selectedIcon:
+            Icon(Icons.history, color: Color(0xFF4A807E), size: 36),
             icon: Icon(Icons.history, color: Color(0xFF4A807E), size: 36),
             label: "",
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.notifications_none_outlined, color: Color(0xFF4A807E), size: 36),
-            icon: Icon(Icons.notifications_none_outlined, color: Color(0xFF4A807E), size: 36),
+            selectedIcon: Icon(Icons.notifications_none_outlined,
+                color: Color(0xFF4A807E), size: 36),
+            icon: Icon(Icons.notifications_none_outlined,
+                color: Color(0xFF4A807E), size: 36),
             label: "",
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.person_rounded, color: Color(0xFF4A807E), size: 36),
+            selectedIcon:
+            Icon(Icons.person_rounded, color: Color(0xFF4A807E), size: 36),
             icon: Icon(Icons.person_rounded, color: Color(0xFF4A807E), size: 36),
             label: "",
           ),
@@ -514,7 +643,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-Widget _buildMealItem(String title, String count) {
+Widget _buildMealItem(String title, String count, String? imageUrl) {
   return Column(
     children: [
       Stack(
@@ -527,7 +656,25 @@ Widget _buildMealItem(String title, String count) {
               color: Color(0xFFD6D6D6),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.image_outlined, size: 38, color: Colors.black54),
+            child: imageUrl != null && imageUrl.trim().isNotEmpty
+                ? ClipOval(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.image_outlined,
+                    size: 38,
+                    color: Colors.black54,
+                  );
+                },
+              ),
+            )
+                : const Icon(
+              Icons.image_outlined,
+              size: 38,
+              color: Colors.black54,
+            ),
           ),
           Positioned(
             right: 0,
