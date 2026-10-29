@@ -148,31 +148,8 @@ class ApiService {
 
     throw Exception('รูปแบบข้อมูลนัดหมายไม่ถูกต้อง');
   }
-  // static Future<List<dynamic>> getAppointments() async {
-  //   return List<dynamic>.from(await _get('/appointments'));
-  // }
-  //
-  // static Future<Map<String, dynamic>> getAppointment({
-  //   String? appointmentId,
-  //   int? userId,
-  // }) async {
-  //   if (appointmentId == null && userId == null) {
-  //     throw ArgumentError('กรุณาระบุ appointmentId หรือ userId');
-  //   }
-  //
-  //   final query = <String, String>{};
-  //   if (appointmentId != null) {
-  //     query['appointment_id'] = appointmentId;
-  //   }
-  //   if (userId != null) query['user_id'] = '$userId';
-  //
-  //   return Map<String, dynamic>.from(
-  //     await _get('/appointment', queryParameters: query),
-  //   );
-  // }
 
   // เลื่อนวันและเวลานัดหมาย
-
   static Future<dynamic> _put(
       String path, {
         required Map<String, dynamic> body,
