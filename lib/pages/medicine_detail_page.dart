@@ -219,19 +219,18 @@ class _MedicineDetailPageState
   Widget buildMedicineDetails() {
     final data = medicineData!;
 
-    final name = getValue(data, 'trade_name', 'name',
-        'ไม่ระบุชื่อยา');
+    final name = getValue(data, 'trade_name');
     final treatment = getValue(
-        data, 'indication', 'treatment');
+        data, 'indications');
     final timeToTake = getValue(
         data, 'time_to_take', 'category', 'ทานตามแพทย์สั่ง');
-    final dosage = getValue(data, 'dosage', 'quantity', '1 เม็ด');
+    final dosage = getValue(data, 'strength');
     final form = getValue(
-        data, 'pharmaceutical_form', 'form');
-    final sideEffects = getValue(data, 'side_effects', null);
-    final precautions = getValue(data, 'precautions', null);
+        data, 'dosageform');
+    final sideEffects = getValue(data, 'side_effects');
+    final precautions = getValue(data, 'precautions');
     final activeIngredient = getValue(
-        data, 'active_ingredient', 'generic_name');
+        data, 'active_ingredient');
 
     final imageUrl = data['image_url'] ?? data['image'];
 

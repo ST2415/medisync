@@ -268,7 +268,7 @@ class _MedicineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //  ดึงชื่อยา
+    // ดึงชื่อยา
     final String name = (itemData['trade_name'] ??
         itemData['name'] ??
         'ไม่ระบุชื่อยา')
@@ -284,18 +284,26 @@ class _MedicineCard extends StatelessWidget {
         .toString();
     final String time = rawTime.isNotEmpty ? rawTime : 'ทานตามแพทย์สั่ง';
 
-    // 3. ดึงปริมาณ/จำนวนเม็ด
-    final String rawQuantity = (itemData['dosage'] ??
+    // ดึงปริมาณ/ขนาด/จำนวนเม็ด
+    final String rawQuantity = (itemData['size'] ??
+        itemData['dosage'] ??
+        itemData['dose'] ??
+        itemData['strength'] ??
+        itemData['dose_amount'] ??
         itemData['amount'] ??
         itemData['tablet_count'] ??
         itemData['quantity'] ??
         '')
-        .toString();
+        .toString()
+        .trim();
+
     final String quantity = rawQuantity.isNotEmpty
-        ? (rawQuantity.contains('เม็ด') ? rawQuantity : 'ครั้งละ $rawQuantity')
+        ? (rawQuantity.startsWith('ขนาด') || rawQuantity.contains('เม็ด')
+        ? rawQuantity
+        : 'ขนาด : $rawQuantity')
         : 'ไม่ระบุขนาด';
 
-    // 4. ดึงรูปภาพ
+    // ดึงรูปภาพ
     final dynamic imageValue = itemData['image_url'] ?? itemData['image'];
     final String? imageUrl = imageValue?.toString();
 

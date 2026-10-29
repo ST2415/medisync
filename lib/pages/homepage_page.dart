@@ -34,6 +34,43 @@ class _HomePageState extends State<HomePage> {
     _fetchDashboardData();
   }
 
+  // วันที่จริง
+  String _getFormattedTodayDate() {
+    final now = DateTime.now();
+
+    const days = [
+      'วันจันทร์',
+      'วันอังคาร',
+      'วันพุธ',
+      'วันพฤหัสบดี',
+      'วันศุกร์',
+      'วันเสาร์',
+      'วันอาทิตย์'
+    ];
+
+    const months = [
+      'มกราคม',
+      'กุมภาพันธ์',
+      'มีนาคม',
+      'เมษายน',
+      'พฤษภาคม',
+      'มิถุนายน',
+      'กรกฎาคม',
+      'สิงหาคม',
+      'กันยายน',
+      'ตุลาคม',
+      'พฤศจิกายน',
+      'ธันวาคม'
+    ];
+
+    final dayName = days[now.weekday - 1];
+    final dayNum = now.day;
+    final monthName = months[now.month - 1];
+    final buddhistYear = now.year + 543;
+
+    return '$dayNameที่ $dayNum $monthName $buddhistYear';
+  }
+
   // ดึงข้อมูลผ่าน HomeService
   Future<void> _fetchDashboardData() async {
     setState(() {
@@ -139,7 +176,7 @@ class _HomePageState extends State<HomePage> {
                   // ส่งข้อมูล inputSymptom ไปยัง API
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('บันทึกอาการเรียบร้อยแล้ว')),
+                    const SnackBar(content: Text('บันทึกอาการเรียบร้อยแล้ว')),
                   );
                 }
               },
@@ -222,9 +259,11 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'วันจันทร์ที่ 20 ตุลาคม 2569',
-                      style: TextStyle(fontSize: 16, color: Color(0xFF294549)),
+
+                    // เรียกใช้ฟังก์ชันแปลงวันที่จริง
+                    Text(
+                      _getFormattedTodayDate(),
+                      style: const TextStyle(fontSize: 16, color: Color(0xFF294549)),
                     ),
                     const SizedBox(height: 20),
 
@@ -374,7 +413,7 @@ class _HomePageState extends State<HomePage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isTaken
                                   ? const Color(0xFF4E7F90)
-                                  : Color(0xFF4A807E),
+                                  : const Color(0xFF4A807E),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
