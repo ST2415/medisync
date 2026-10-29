@@ -84,11 +84,6 @@ class Schedule(BaseModel):
     time_to_take: str
     dosage_amount: int
 
-def get_db_connection():
-    conn = sqlite3.connect('medisync.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
 @app.get("/schedules")
 def get_schedules():
     conn = get_db_connection()

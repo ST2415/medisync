@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -24,7 +23,6 @@ class MedicineService {
     );
 
     // รองรับ API ที่ส่ง List โดยตรง
-    // หรือส่งข้อมูลในรูป {"medicines": [...]}
     dynamic rawList = decoded;
 
     if (decoded is Map<String, dynamic>) {
