@@ -32,15 +32,11 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     _loadAppointments();
   }
 
+  // ดึงข้อมูลการนัดหมาย (คงการทำงานเดิมไว้ทั้งหมด)
   Future<void> _loadAppointments() async {
-    print('1. เริ่มเรียก API');
-
     try {
-      final data = await ApiService.getAppointments(userId: 16,)
+      final data = await ApiService.getAppointments(userId: 16)
           .timeout(const Duration(seconds: 10));
-
-      print('2. API ตอบกลับแล้ว');
-      print('3. จำนวนรายการ: ${data.length}');
 
       final appointments = data.map((json) {
         final map = Map<String, dynamic>.from(json as Map);
@@ -59,19 +55,13 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
         );
       }).toList();
 
-      print('4. แปลงข้อมูลเสร็จแล้ว');
-
       if (!mounted) return;
 
       setState(() {
         myAppointments = appointments;
         errorMessage = null;
       });
-
-      print('5. อัปเดตหน้าจอแล้ว');
     } catch (e) {
-      print('เกิดข้อผิดพลาด: $e');
-
       if (!mounted) return;
 
       setState(() {
@@ -128,23 +118,21 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     }
   }
 
-  // 3. Logic การทำงานเมื่อกดปุ่มยืนยันนัดหมาย (เปลี่ยนข้อมูลเฉพาะบนหน้าจอเครื่อง)
   void _handleConfirmButton(String id) {
     setState(() {
-      // ค้นหาตำแหน่งการ์ดใบที่ถูกกดใน List ผ่านค่า id
-      int targetIndex = myAppointments.indexWhere((element) => element.appid == id);
+      int targetIndex =
+          myAppointments.indexWhere((element) => element.appid == id);
 
       if (targetIndex != -1) {
-        // อัปเดตสถานะของข้อมูลใบนั้นให้เปลี่ยนเป็น ยืนยันแล้ว
         myAppointments[targetIndex].status = 'ยืนยันแล้ว';
       }
     });
 
-    // แสดงแถบป๊อปอัปแจ้งเตือนสั้นๆ ด้านล่างจอ
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('ยืนยันรหัสนัดหมาย $id สำเร็จ (Local State)'),
+        content: Text('ยืนยันรหัสนัดหมาย $id สำเร็จ'),
         duration: const Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -186,21 +174,34 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('ยืนยันการเลื่อนนัด'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'ยืนยันการเลื่อนนัด',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF294549),
+          ),
+        ),
         content: Text(
           'วันที่ ${date.day}/${date.month}/${date.year}\n'
-              'เวลา ${time.format(context)} น.',
+          'เวลา ${time.format(context)} น.',
         ),
         actions: [
           TextButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, false),
-            child: const Text('ยกเลิก'),
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('ยกเลิก', style: TextStyle(color: Colors.black54)),
           ),
           ElevatedButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, true),
-            child: const Text('ยืนยัน'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF294549),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -212,34 +213,35 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
       await ApiService.reappointment(
         appointmentId: item.appid,
         appointmentDate:
-        '${date.year}-${date.month.toString().padLeft(2, '0')}-'
+            '${date.year}-${date.month.toString().padLeft(2, '0')}-'
             '${date.day.toString().padLeft(2, '0')}',
         appointmentTime:
-        '${time.hour.toString().padLeft(2, '0')}:'
+            '${time.hour.toString().padLeft(2, '0')}:'
             '${time.minute.toString().padLeft(2, '0')}',
       );
 
       setState(() {
         final index = myAppointments.indexWhere(
-              (appointment) => appointment.appid == item.appid,
+          (appointment) => appointment.appid == item.appid,
         );
 
         if (index != -1) {
           myAppointments[index] = Appointment(
             appid: item.appid,
-            dateStr:
-            '${date.day}/${date.month}/${date.year}',
+            dateStr: '${date.day}/${date.month}/${date.year}',
             timeStr:
-            '${time.hour.toString().padLeft(2, '0')}:'
+                '${time.hour.toString().padLeft(2, '0')}:'
                 '${time.minute.toString().padLeft(2, '0')}',
             status: 'เลื่อนแล้ว',
           );
         }
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('เลื่อนวันนัดหมายสำเร็จ'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } catch (e) {
@@ -248,6 +250,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เลื่อนวันนัดหมายไม่สำเร็จ: $e'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -255,81 +258,143 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
-      body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 20),
-                  child: Text(
-                    'แจ้งเตือนนัดหมายแพทย์',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-
-                // ปุ่ม Dropdown เลือกสัปดาห์
-                Container(
-                width: 200,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4A807E),
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: dropdownAppointmentList,
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white),
-                    isExpanded: true, //สั่งให้เนื้อหาและไอคอนลูกศรกางขยายเต็มพื้นที่ Container
-                    dropdownColor: Color(0xFF4A807E),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    items: appointmentList.map((String value) {
-                      return DropdownMenuItem<String>(value: value, child: Text(value));
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue == null) return;
-
-                      setState(() {
-                        dropdownAppointmentList = newValue;
-                      });
-                    },
-                  ),
-                ),
+      backgroundColor: const Color(0xFFF7F9FA),
+      body: Column(
+        children: [
+          // Top Header Banner สไตล์เดียวกับ homepage_page.dart
+          Container(
+            padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 20),
+            decoration: const BoxDecoration(
+              color: Color(0xFF294549),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
               ),
-
-              const SizedBox(height: 16),
-
-              Builder(
-                builder: (context) {
-                  if (isLoading) {
-                    return const Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Center(
-                        child: CircularProgressIndicator(),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x20000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.notifications_active_rounded,
+                                color: Color(0xFF90C2B7),
+                                size: 26,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'นัดหมายแพทย์',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'แจ้งเตือนรายการนัดหมายของคุณ',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF90C2B7),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  }
+                    ),
 
-                  if (errorMessage != null) {
-                    return Padding(
+                    // Dropdown ปุ่มเลือกสถานะ (ดีไซน์เข้ากัน)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4E7F90),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: dropdownAppointmentList,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                              color: Colors.white),
+                          dropdownColor: const Color(0xFF294549),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          items: appointmentList.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue == null) return;
+
+                            setState(() {
+                              dropdownAppointmentList = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // รายการแสดงผลนัดหมาย
+          Expanded(
+            child: Builder(
+              builder: (context) {
+                if (isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF294549),
+                    ),
+                  );
+                }
+
+                if (errorMessage != null) {
+                  return Center(
+                    child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text(
                             'ไม่สามารถโหลดรายการนัดหมายได้',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF294549),
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             errorMessage!,
                             textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.black54),
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton(
@@ -340,87 +405,132 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
                               });
                               _loadAppointments();
                             },
-                            child: const Text('ลองอีกครั้ง'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF294549),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('ลองอีกครั้ง',
+                                style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),
-                    );
-                  }
-
-                  final appointments = _getFilteredAppointments();
-
-                  if (appointments.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 24),
-                      child: Center(
-                        child: Text('ไม่มีรายการนัดหมาย'),
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: appointments.map((appointment) {
-                      return _buildAppointmentCard(appointment);
-                    }).toList(),
+                    ),
                   );
-                },
-              ),
-              ],
+                }
 
+                final appointments = _getFilteredAppointments();
+
+                if (appointments.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ไม่มีรายการนัดหมาย',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: appointments.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 14),
+                  itemBuilder: (context, index) {
+                    return _buildAppointmentCard(appointments[index]);
+                  },
+                );
+              },
             ),
-
-
-      //Bottom NavBar
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0, // ให้ล็อคไอคอน Home สว่างค้างไว้เป็นหน้าหลักเสมอ
-        backgroundColor: const Color(0xFF294549),
-        indicatorColor: Colors.transparent,
-        onDestinationSelected: (int index) {
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SearchMedicinePage()),
-            );
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HistoryTableListPage()),
-            );
-          }
-        },
-
-        destinations: <Widget>[
-          NavigationDestination(
-              selectedIcon: Icon(Icons.home_outlined, color: Color(0xFF4A807E), size: 36),
-              icon: Icon(Icons.home_outlined, color: Color(0xFF4A807E), size: 36),
-              label: ""
-          ),
-          NavigationDestination(
-              selectedIcon: Icon(Icons.search, color: Color(0xFF4A807E), size: 36),
-              icon: Icon(Icons.search, color: Color(0xFF4A807E), size: 36),
-              label: ""
-          ),
-          NavigationDestination(
-              selectedIcon: Icon(Icons.history, color: Color(0xFF4A807E), size: 36),
-              icon: Icon(Icons.history, color: Color(0xFF4A807E), size: 36),
-              label: ""
-          ),
-          NavigationDestination(
-              selectedIcon: Icon(Icons.notifications_none_outlined, color: Color(0xFF90C2B7), size: 36),
-              icon: Icon(Icons.notifications_none_outlined, color: Color(0xFF90C2B7), size: 36),
-              label: ""
-          ),
-          NavigationDestination(
-              selectedIcon: Icon(Icons.person_rounded, color: Color(0xFF4A807E), size: 36),
-              icon: Icon(Icons.person_rounded, color: Color(0xFF4A807E), size: 36),
-              label: ""
           ),
         ],
+      ),
+
+      // Bottom Navigation Bar อันเดียวกับหน้า homepage_page.dart
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF294549),
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(
+              icon: Icons.home_rounded,
+              label: 'หน้าแรก',
+              isSelected: false,
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                );
+              },
+            ),
+            _buildNavItem(
+              icon: Icons.medication_rounded,
+              label: 'ยา',
+              isSelected: false,
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SearchMedicinePage()),
+                );
+              },
+            ),
+            _buildNavItem(
+              icon: Icons.history_rounded,
+              label: 'ประวัติ',
+              isSelected: false,
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const HistoryTableListPage()),
+                );
+              },
+            ),
+            _buildNavItem(
+              icon: Icons.notifications_rounded,
+              label: 'นัดหมาย',
+              isSelected: true,
+              onTap: () {},
+            ),
+            // Floating menu button ด้านขวา
+            Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFF90C2B7),
+                shape: BoxShape.circle,
+              ),
+              child: const IconButton(
+                onPressed: null,
+                icon: Icon(
+                  Icons.menu_rounded,
+                  color: Color(0xFF294549),
+                  size: 22,
+                ),
+                constraints: BoxConstraints(
+                  minWidth: 42,
+                  minHeight: 42,
+                ),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -460,90 +570,219 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     }
   }
 
-
   Widget _buildAppointmentCard(Appointment item) {
     final isConfirmed = item.status == 'ยืนยันแล้ว';
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFFBBD7DA),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'นัดหมายครั้งถัดไป',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.event_note_rounded,
+                    color: Color(0xFF294549),
+                    size: 22,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'นัดหมายแพทย์',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF294549),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isConfirmed
+                      ? const Color(0xFF294549)
+                      : const Color(0xFF4E7F90),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  item.status,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // รายละเอียดวันที่และเวลาในกรอบขาวนุ่มนวล
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0x99FFFFFF),
+              borderRadius: BorderRadius.circular(14),
             ),
-          ),
-          const SizedBox(height: 8),
-
-          Text(
-            'วันที่ ${item.dateStr} ณ เวลา ${item.timeStr} น.',
-            style: const TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-
-          Text(
-            'สถานะ: ${item.status}',
-            style: const TextStyle(fontSize: 16),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 18,
+                  color: Color(0xFF294549),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  item.dateStr,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF294549),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Icon(
+                  Icons.access_time_rounded,
+                  size: 18,
+                  color: Color(0xFF294549),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${item.timeStr} น.',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF294549),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
-                  onPressed: isConfirmed
-                      ? null
-                      : () => _handleReappointment(item),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Color(0x75294549), width: 2),
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                child: OutlinedButton.icon(
+                  onPressed:
+                      isConfirmed ? null : () => _handleReappointment(item),
+                  icon: const Icon(
+                    Icons.event_repeat_rounded,
+                    size: 18,
                   ),
-                  child: const Text(
+                  label: const Text(
                     'เลื่อนวันนัดหมาย',
                     textAlign: TextAlign.center,
                   ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF294549),
+                    disabledForegroundColor: Colors.black38,
+                    backgroundColor: const Color(0x66FFFFFF),
+                    side: const BorderSide(color: Color(0xFF294549), width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-
+              const SizedBox(width: 10),
               Expanded(
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: isConfirmed
                       ? null
                       : () => _handleConfirmButton(item.appid),
+                  icon: Icon(
+                    isConfirmed
+                        ? Icons.check_circle_rounded
+                        : Icons.check_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    isConfirmed ? 'ยืนยันแล้ว' : 'ยืนยันวันนัดหมาย',
+                    textAlign: TextAlign.center,
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF294549),
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0x75294549),
+                    disabledBackgroundColor: const Color(0x66294549),
                     disabledForegroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 1,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  child: Text(
-                    isConfirmed ? 'ยืนยันแล้ว' : 'ยืนยันวันนัดหมาย',
-                    textAlign: TextAlign.center,
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: isSelected
+            ? BoxDecoration(
+                color: const Color(0xFF4E7F90),
+                borderRadius: BorderRadius.circular(20),
+              )
+            : null,
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? const Color(0xFF90C2B7) : Colors.white60,
+              size: 20,
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
