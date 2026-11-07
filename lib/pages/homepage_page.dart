@@ -599,39 +599,46 @@ class _HomePageState extends State<HomePage> {
                       ),
                       child: Column(
                         children: [
-                          _buildMealTimeRow(
-                            mealName: 'ตอนเช้า (หลังอาหาร)',
-                            timeStr: '08:00',
+                          const SizedBox(height: 10),
+
+                          // 1. ช่วงเวลาตอนเช้า
+                          _buildMealSection(
+                            title: 'ตอนเช้า',
+                            defaultTime: '08:00 น.',
                             medicineName: currentMedicineName,
-                            dosageCount: morningCount > 0
-                                ? morningCount
-                                : currentDosage,
+                            dosageCount: morningCount > 0 ? morningCount : currentDosage,
                             imageUrl: morningImage,
                             isDone: isTaken,
                             onTapToggle: _toggleTakeMedicine,
                           ),
-                          const Divider(
-                              height: 24, color: Colors.white38),
-                          _buildMealTimeRow(
-                            mealName: 'ตอนกลางวัน (หลังอาหาร)',
-                            timeStr: '12:00',
+
+                          const SizedBox(height: 14),
+
+                          // 2. ช่วงเวลาตอนกลางวัน
+                          _buildMealSection(
+                            title: 'ตอนกลางวัน',
+                            defaultTime: '12:00 น.',
                             medicineName: lunchMedicineName,
                             dosageCount: lunchCount,
                             imageUrl: lunchImage,
                             isDone: lunchCount > 0 && isTaken,
                             onTapToggle: () {},
                           ),
-                          const Divider(
-                              height: 24, color: Colors.white38),
-                          _buildMealTimeRow(
-                            mealName: 'ตอนเย็น (หลังอาหาร)',
-                            timeStr: '18:00',
+
+                          const SizedBox(height: 14),
+
+                          // 3. ช่วงเวลาตอนเย็น
+                          _buildMealSection(
+                            title: 'ตอนเย็น',
+                            defaultTime: '18:00 น.',
                             medicineName: dinnerMedicineName,
                             dosageCount: dinnerCount,
                             imageUrl: dinnerImage,
                             isDone: dinnerCount > 0 && isTaken,
                             onTapToggle: () {},
                           ),
+
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -954,6 +961,166 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMealSection({
+    required String title,
+    required String defaultTime,
+    required String medicineName,
+    required int dosageCount,
+    required String? imageUrl,
+    required bool isDone,
+    required VoidCallback onTapToggle,
+  }) {
+    final bool hasMedicine = medicineName.trim().isNotEmpty && medicineName != "ไม่มีรายการยา";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // หัวข้อช่วงเวลา (เช้า / กลางวัน / เย็น)
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 6,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4E7F90),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$title ($defaultTime)',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF294549),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // กล่องแสดงผล: ถ้ามียา แสดงการ์ดยา | ถ้าไม่มียา แสดงข้อความว่าไม่มีรายการยา
+        hasMedicine
+            ? Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            // เพิ่มเส้นขอบสีเขียวเข้มบางๆ เมื่อกินยาแล้ว (หรือเส้นขอบขาวนุ่มๆ)
+            border: Border.all(
+              color: isDone ? const Color(0xFF90C2B7) : Colors.white,
+              width: 1.5,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14000000), // เพิ่มเงาให้นุ่มและมีมิติลอยตัวขึ้น
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // รูปภาพยา (ใช้พื้นหลังสีเขียวเข้มเดิม ตัดกับสีขาวได้สวยมาก)
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF294549),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: imageUrl != null && imageUrl.trim().isNotEmpty
+                    ? Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.medication_rounded,
+                    color: Color(0xFF90C2B7),
+                    size: 28,
+                  ),
+                )
+                    : const Icon(
+                  Icons.medication_rounded,
+                  color: Color(0xFF90C2B7),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              // รายละเอียดตัวยา
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      medicineName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF294549),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'รับประทาน $dosageCount เม็ด (หลังอาหาร)',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF4E7F90),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ปุ่มสถานะติ๊กถูก
+              InkWell(
+                onTap: onTapToggle,
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Icon(
+                    isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
+                    color: isDone ? const Color(0xFF294549) : Colors.black38,
+                    size: 30,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        )
+            : Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black12, width: 1),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline_rounded, size: 20, color: Color(0xFF294549)),
+              SizedBox(width: 10),
+              Text(
+                'ไม่มีรายการยา',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF294549),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
