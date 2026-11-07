@@ -14,7 +14,7 @@ class AppointmentListPage extends StatefulWidget {
 
 class _AppointmentListPageState extends State<AppointmentListPage> {
   String dropdownAppointmentList = 'รายการทั้งหมด';
-  var appointmentList = [
+  final List<String> appointmentList = [
     'รายการทั้งหมด',
     'รายการที่ยืนยัน',
     'รายการที่เลื่อน',
@@ -22,7 +22,6 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
   ];
 
   List<Appointment> myAppointments = [];
-
   bool isLoading = true;
   String? errorMessage;
 
@@ -32,7 +31,6 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     _loadAppointments();
   }
 
-  // ดึงข้อมูลการนัดหมาย (คงการทำงานเดิมไว้ทั้งหมด)
   Future<void> _loadAppointments() async {
     try {
       final data = await ApiService.getAppointments(userId: 16)
@@ -43,15 +41,9 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
 
         return Appointment(
           appid: map['appointment_id'].toString(),
-          dateStr: _formatDate(
-            map['appointment_date'].toString(),
-          ),
-          timeStr: _formatTime(
-            map['appointment_time'].toString(),
-          ),
-          status: _formatStatus(
-            map['status']?.toString() ?? 'รอยืนยัน',
-          ),
+          dateStr: _formatDate(map['appointment_date'].toString()),
+          timeStr: _formatTime(map['appointment_time'].toString()),
+          status: _formatStatus(map['status']?.toString() ?? 'รอยืนยัน'),
         );
       }).toList();
 
@@ -63,7 +55,6 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
       });
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
         errorMessage = e.toString();
       });
@@ -78,22 +69,17 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
 
   String _formatDate(String value) {
     final date = DateTime.tryParse(value);
-
     if (date != null) {
       return '${date.day}/${date.month}/${date.year}';
     }
-
     return value;
   }
 
   String _formatTime(String value) {
     final parts = value.split(':');
-
     if (parts.length >= 2) {
-      return '${parts[0].padLeft(2, '0')}:'
-          '${parts[1].padLeft(2, '0')}';
+      return '${parts[0].padLeft(2, '0')}:${parts[1].padLeft(2, '0')}';
     }
-
     return value;
   }
 
@@ -102,17 +88,14 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
       case 'pending':
       case 'รอยืนยัน':
         return 'รอยืนยัน';
-
       case 'confirmed':
       case 'ยืนยัน':
       case 'ยืนยันแล้ว':
         return 'ยืนยันแล้ว';
-
       case 'rescheduled':
       case 'เลื่อน':
       case 'เลื่อนแล้ว':
         return 'เลื่อนแล้ว';
-
       default:
         return value;
     }
@@ -120,9 +103,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
 
   void _handleConfirmButton(String id) {
     setState(() {
-      int targetIndex =
-          myAppointments.indexWhere((element) => element.appid == id);
-
+      int targetIndex = myAppointments.indexWhere((element) => element.appid == id);
       if (targetIndex != -1) {
         myAppointments[targetIndex].status = 'ยืนยันแล้ว';
       }
@@ -140,13 +121,9 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
   Future<void> _handleReappointment(Appointment item) async {
     final selectedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().add(
-        const Duration(days: 1),
-      ),
+      initialDate: DateTime.now().add(const Duration(days: 1)),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(
-        const Duration(days: 365),
-      ),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
       helpText: 'เลือกวันนัดหมายใหม่',
     );
 
@@ -160,33 +137,20 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
 
     if (selectedTime == null || !mounted) return;
 
-    final date = DateTime(
-      selectedDate.year,
-      selectedDate.month,
-      selectedDate.day,
-    );
-
-    final time = TimeOfDay(
-      hour: selectedTime.hour,
-      minute: selectedTime.minute,
-    );
+    final date = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    final time = TimeOfDay(hour: selectedTime.hour, minute: selectedTime.minute);
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'ยืนยันการเลื่อนนัด',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF294549),
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF294549)),
         ),
         content: Text(
           'วันที่ ${date.day}/${date.month}/${date.year}\n'
-          'เวลา ${time.format(context)} น.',
+              'เวลา ${time.format(context)} น.',
         ),
         actions: [
           TextButton(
@@ -196,9 +160,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF294549),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
@@ -213,25 +175,19 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
       await ApiService.reappointment(
         appointmentId: item.appid,
         appointmentDate:
-            '${date.year}-${date.month.toString().padLeft(2, '0')}-'
-            '${date.day.toString().padLeft(2, '0')}',
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
         appointmentTime:
-            '${time.hour.toString().padLeft(2, '0')}:'
-            '${time.minute.toString().padLeft(2, '0')}',
+        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
       );
 
       setState(() {
-        final index = myAppointments.indexWhere(
-          (appointment) => appointment.appid == item.appid,
-        );
-
+        final index = myAppointments.indexWhere((appointment) => appointment.appid == item.appid);
         if (index != -1) {
           myAppointments[index] = Appointment(
             appid: item.appid,
             dateStr: '${date.day}/${date.month}/${date.year}',
             timeStr:
-                '${time.hour.toString().padLeft(2, '0')}:'
-                '${time.minute.toString().padLeft(2, '0')}',
+            '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
             status: 'เลื่อนแล้ว',
           );
         }
@@ -246,7 +202,6 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
       );
     } catch (e) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('เลื่อนวันนัดหมายไม่สำเร็จ: $e'),
@@ -256,16 +211,41 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
     }
   }
 
+  List<Appointment> _getFilteredAppointments() {
+    switch (dropdownAppointmentList) {
+      case 'รายการที่ยืนยัน':
+        return myAppointments.where((item) => item.status == 'ยืนยันแล้ว').toList();
+      case 'รายการที่เลื่อน':
+        return myAppointments.where((item) => item.status == 'เลื่อนแล้ว').toList();
+      case 'รายการที่ผ่านมาแล้ว':
+        final now = DateTime.now();
+        return myAppointments.where((item) {
+          final parts = item.dateStr.split('/');
+          if (parts.length != 3) return false;
+          final date = DateTime(
+            int.parse(parts[2]),
+            int.parse(parts[1]),
+            int.parse(parts[0]),
+          );
+          return date.isBefore(DateTime(now.year, now.month, now.day));
+        }).toList();
+      default:
+        return myAppointments;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
+    final filteredList = _getFilteredAppointments();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FA),
       body: Column(
         children: [
-          // Top Header Banner สไตล์เดียวกับ homepage_page.dart
+          // 1. Header Banner ด้านบน
           Container(
+            width: double.infinity,
             padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 20),
             decoration: const BoxDecoration(
               color: Color(0xFF294549),
@@ -281,97 +261,125 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
                 ),
               ],
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.notifications_active_rounded,
-                                color: Color(0xFF90C2B7),
-                                size: 26,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'นัดหมายแพทย์',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'แจ้งเตือนรายการนัดหมายของคุณ',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF90C2B7),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                    Icon(
+                      Icons.notifications_active_rounded,
+                      color: Color(0xFF90C2B7),
+                      size: 26,
                     ),
-
-                    // Dropdown ปุ่มเลือกสถานะ (ดีไซน์เข้ากัน)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4E7F90),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: dropdownAppointmentList,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                              color: Colors.white),
-                          dropdownColor: const Color(0xFF294549),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          items: appointmentList.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            if (newValue == null) return;
-
-                            setState(() {
-                              dropdownAppointmentList = newValue;
-                            });
-                          },
-                        ),
+                    SizedBox(width: 8),
+                    Text(
+                      'นัดหมายแพทย์',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ],
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'แจ้งเตือนรายการนัดหมายของคุณ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF90C2B7),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
           ),
 
-          // รายการแสดงผลนัดหมาย
+          // 2. แถบควบคุมตัวกรอง (Dropdown อยู่ด้านล่าง Header และอยู่เหนือรายการนัดหมาย)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // แสดงจำนวนนัดหมายที่ตรงเงื่อนไข
+                Row(
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4E7F90),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'รายการทั้งหมด (${filteredList.length})',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF294549),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ตัว Dropdown ปรับสไตล์เป็น Capsule เอาเส้นขอบออก
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: dropdownAppointmentList,
+                      isDense: true,
+                      dropdownColor: Colors.white,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0xFF294549),
+                        size: 20,
+                      ),
+                      style: const TextStyle(
+                        color: Color(0xFF294549),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      items: appointmentList.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: TextStyle(
+                              color: const Color(0xFF294549),
+                              fontWeight: value == dropdownAppointmentList
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue == null) return;
+                        setState(() {
+                          dropdownAppointmentList = newValue;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. รายการแสดงผลนัดหมาย (Cards)
           Expanded(
             child: Builder(
               builder: (context) {
                 if (isLoading) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF294549),
-                    ),
+                    child: CircularProgressIndicator(color: Color(0xFF294549)),
                   );
                 }
 
@@ -411,8 +419,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text('ลองอีกครั้ง',
-                                style: TextStyle(color: Colors.white)),
+                            child: const Text('ลองอีกครั้ง', style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),
@@ -420,14 +427,12 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
                   );
                 }
 
-                final appointments = _getFilteredAppointments();
-
-                if (appointments.isEmpty) {
+                if (filteredList.isEmpty) {
                   return const Center(
                     child: Text(
                       'ไม่มีรายการนัดหมาย',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         color: Colors.black54,
                         fontWeight: FontWeight.w500,
                       ),
@@ -436,12 +441,11 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
                 }
 
                 return ListView.separated(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: appointments.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 14),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                  itemCount: filteredList.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 14),
                   itemBuilder: (context, index) {
-                    return _buildAppointmentCard(appointments[index]);
+                    return _buildAppointmentCard(filteredList[index]);
                   },
                 );
               },
@@ -450,7 +454,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
         ],
       ),
 
-      // Bottom Navigation Bar อันเดียวกับหน้า homepage_page.dart
+      // Bottom Navigation Bar
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -486,8 +490,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const SearchMedicinePage()),
+                  MaterialPageRoute(builder: (context) => const SearchMedicinePage()),
                 );
               },
             ),
@@ -498,8 +501,7 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) => const HistoryTableListPage()),
+                  MaterialPageRoute(builder: (context) => const HistoryTableListPage()),
                 );
               },
             ),
@@ -509,13 +511,11 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
               isSelected: true,
               onTap: () {},
             ),
-            // Floating menu button ด้านขวา
-            // ไอคอนผู้ใช้ (User) ท้าย Navbar - ไม่มีพื้นหลัง และกดไม่ได้
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Icon(
-                Icons.person_rounded, // หรือ Icons.person_outline_rounded
-                color: Colors.white60, // สีขาวจางๆ สไตล์เดียวกับแท็บอื่นที่ไม่ได้เลือก
+                Icons.person_rounded,
+                color: Colors.white60,
                 size: 24,
               ),
             ),
@@ -523,41 +523,6 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
         ),
       ),
     );
-  }
-
-  List<Appointment> _getFilteredAppointments() {
-    switch (dropdownAppointmentList) {
-      case 'รายการที่ยืนยัน':
-        return myAppointments
-            .where((item) => item.status == 'ยืนยันแล้ว')
-            .toList();
-
-      case 'รายการที่เลื่อน':
-        return myAppointments
-            .where((item) => item.status == 'เลื่อนแล้ว')
-            .toList();
-
-      case 'รายการที่ผ่านมาแล้ว':
-        final now = DateTime.now();
-
-        return myAppointments.where((item) {
-          final parts = item.dateStr.split('/');
-          if (parts.length != 3) return false;
-
-          final date = DateTime(
-            int.parse(parts[2]),
-            int.parse(parts[1]),
-            int.parse(parts[0]),
-          );
-
-          return date.isBefore(
-            DateTime(now.year, now.month, now.day),
-          );
-        }).toList();
-
-      default:
-        return myAppointments;
-    }
   }
 
   Widget _buildAppointmentCard(Appointment item) {
@@ -602,12 +567,9 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
                 ],
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isConfirmed
-                      ? const Color(0xFF294549)
-                      : const Color(0xFF4E7F90),
+                  color: isConfirmed ? const Color(0xFF294549) : const Color(0xFF4E7F90),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -622,8 +584,6 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
             ],
           ),
           const SizedBox(height: 12),
-
-          // รายละเอียดวันที่และเวลาในกรอบขาวนุ่มนวล
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -665,17 +625,12 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
             ),
           ),
           const SizedBox(height: 16),
-
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed:
-                      isConfirmed ? null : () => _handleReappointment(item),
-                  icon: const Icon(
-                    Icons.event_repeat_rounded,
-                    size: 18,
-                  ),
+                  onPressed: isConfirmed ? null : () => _handleReappointment(item),
+                  icon: const Icon(Icons.event_repeat_rounded, size: 18),
                   label: const Text(
                     'เลื่อนวันนัดหมาย',
                     textAlign: TextAlign.center,
@@ -699,13 +654,9 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: isConfirmed
-                      ? null
-                      : () => _handleConfirmButton(item.appid),
+                  onPressed: isConfirmed ? null : () => _handleConfirmButton(item.appid),
                   icon: Icon(
-                    isConfirmed
-                        ? Icons.check_circle_rounded
-                        : Icons.check_rounded,
+                    isConfirmed ? Icons.check_circle_rounded : Icons.check_rounded,
                     size: 18,
                   ),
                   label: Text(
@@ -749,9 +700,9 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: isSelected
             ? BoxDecoration(
-                color: const Color(0xFF4E7F90),
-                borderRadius: BorderRadius.circular(20),
-              )
+          color: const Color(0xFF4E7F90),
+          borderRadius: BorderRadius.circular(20),
+        )
             : null,
         child: Row(
           children: [
