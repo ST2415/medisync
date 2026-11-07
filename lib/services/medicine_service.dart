@@ -1,8 +1,43 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:medisync/services/home_service.dart'; // หรือที่เก็บ baseUrl
 
 class MedicineService {
   static const String baseUrl = 'http://127.0.0.1:8000';
+
+  // เพิ่มเมธอดนี้เข้าไปในคลาส MedicineService
+  Future<bool> addMedicineToSchedule({
+    required int userId,
+    required dynamic tpuCode,
+    required String timeToTake,
+    required int dosageAmount,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/schedules');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'user_id': userId,
+          'tpu_code': int.tryParse(tpuCode.toString()) ?? 0,
+          'time_to_take': timeToTake,
+          'dosage_amount': dosageAmount,
+        }),
+      );
+
+      print('Add Schedule Response Status: ${response.statusCode}');
+      print('Add Schedule Response Body: ${response.body}');
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      print('Error adding schedule: $e');
+      return false;
+    }
+  }
 
   // ดึงรายการยาทั้งหมด แล้วกรองตามคำค้นหา
   Future<List<Map<String, dynamic>>> searchMedicines({

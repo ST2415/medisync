@@ -213,6 +213,50 @@ def get_medicine(tpu_code: int = None, trade_name: str = None):
         if medicine is None:
             raise HTTPException(status_code=404, detail="Medicine not found")
         return dict(medicine)
+
+# โมเดลรับข้อมูลจาก Flutter
+class ScheduleCreate(BaseModel):
+    user_id: int
+    tpu_code: int
+    time_to_take: str
+    dosage_amount: int
+
+@app.post("/schedules")
+def add_schedule(item: ScheduleCreate):
+    conn = get_db_connection()
+
+    try:
+        new_schedule_id = f"SCH_{uuid.uuid4().hex[:8]}"
+
+        conn.execute(
+            """
+            INSERT INTO schedules
+            (schedule_id, user_id, tpu_code, time_to_take, dosage_amount)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                new_schedule_id,
+                item.user_id,
+                item.tpu_code,
+                item.time_to_take,
+                item.dosage_amount
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "status": "success",
+            "schedule_id": new_schedule_id
+        }
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        conn.close()
+    
     
 
 # appointment

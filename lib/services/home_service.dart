@@ -104,19 +104,29 @@ class HomeService {
         Uri.parse('$baseUrl/users/$userId/today-schedules'),
       );
 
+      debugPrint('Today Schedules Status: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        debugPrint('Today Schedules Data: $data');
+
         if (data is List) {
+          debugPrint('Schedule Count: ${data.length}');
           return data;
         } else if (data is Map && data.containsKey('data')) {
-          return data['data'] as List<dynamic>;
+          final result = data['data'] as List<dynamic>;
+          debugPrint('Schedule Count: ${result.length}');
+          return result;
         }
+
         return [];
       } else {
+        debugPrint('Fetch Error: ${response.body}');
         return [];
       }
     } catch (e) {
-      debugPrint("Error fetching today schedules: $e");
+      debugPrint('Error fetching today schedules: $e');
       return [];
     }
   }

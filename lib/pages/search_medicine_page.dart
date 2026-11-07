@@ -15,6 +15,7 @@ class SearchMedicinePage extends StatefulWidget {
 }
 
 class _SearchMedicinePageState extends State<SearchMedicinePage> {
+  bool _showFilters = false;
   final MedicineService _medicineService = MedicineService();
   final TextEditingController _searchController = TextEditingController();
 
@@ -254,62 +255,179 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
 
                 const SizedBox(height: 12),
 
-                // เมนู Dropdown ทั้ง 4 อัน จัดเป็น 2 แถว
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildFilterDropdown(
-                        label: 'รูปแบบยา',
-                        currentValue: selectedDosageForm,
-                        items: dosageFormOptions,
-                        onChanged: (val) {
-                          selectedDosageForm = val;
-                          _applyClientFilter();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildFilterDropdown(
-                        label: 'สรรพคุณ/การรักษา',
-                        currentValue: selectedIndication,
-                        items: indicationOptions,
-                        onChanged: (val) {
-                          selectedIndication = val;
-                          _applyClientFilter();
-                        },
-                      ),
-                    ),
-                  ],
+              ],
+            ),
+          ),
+
+          // Filter Panel
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: const Color(0xFFE4ECEC),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x10000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildFilterDropdown(
-                        label: 'ผลข้างเคียง',
-                        currentValue: selectedSideEffect,
-                        items: sideEffectOptions,
-                        onChanged: (val) {
-                          selectedSideEffect = val;
-                          _applyClientFilter();
-                        },
-                      ),
+              ],
+            ),
+            child: Column(
+              children: [
+                InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () {
+                    setState(() {
+                      _showFilters = !_showFilters;
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildFilterDropdown(
-                        label: 'ข้อควรระวัง',
-                        currentValue: selectedPrecaution,
-                        items: precautionOptions,
-                        onChanged: (val) {
-                          selectedPrecaution = val;
-                          _applyClientFilter();
-                        },
-                      ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.filter_list_rounded,
+                          color: Color(0xFF294549),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'ตัวกรองยา',
+                          style: TextStyle(
+                            color: Color(0xFF294549),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        if (hasActiveFilter)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFBBD7DA),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'กำลังกรอง',
+                              style: TextStyle(
+                                color: Color(0xFF294549),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+
+                        const Spacer(),
+
+                        if (hasActiveFilter)
+                          TextButton(
+                            onPressed: _resetFilters,
+                            child: const Text(
+                              'ล้าง',
+                              style: TextStyle(
+                                color: Color(0xFF4E7F90),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+
+                        Icon(
+                          _showFilters
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          color: const Color(0xFF294549),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+
+                if (_showFilters) ...[
+                  const Divider(height: 1, color: Color(0xFFE4ECEC)),
+
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildFilterDropdown(
+                                label: 'รูปแบบยา',
+                                currentValue: selectedDosageForm,
+                                items: dosageFormOptions,
+                                onChanged: (val) {
+                                  setState(() {
+                                    selectedDosageForm = val;
+                                    _applyClientFilter();
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildFilterDropdown(
+                                label: 'สรรพคุณ / การรักษา',
+                                currentValue: selectedIndication,
+                                items: indicationOptions,
+                                onChanged: (val) {
+                                  setState(() {
+                                    selectedIndication = val;
+                                    _applyClientFilter();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildFilterDropdown(
+                                label: 'ผลข้างเคียง',
+                                currentValue: selectedSideEffect,
+                                items: sideEffectOptions,
+                                onChanged: (val) {
+                                  setState(() {
+                                    selectedSideEffect = val;
+                                    _applyClientFilter();
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildFilterDropdown(
+                                label: 'ข้อควรระวัง',
+                                currentValue: selectedPrecaution,
+                                items: precautionOptions,
+                                onChanged: (val) {
+                                  setState(() {
+                                    selectedPrecaution = val;
+                                    _applyClientFilter();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -445,12 +563,15 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
     required ValueChanged<String?> onChanged,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF294549),
-        borderRadius: BorderRadius.circular(10),
+        color: const Color(0xFFF2F6F6),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: currentValue != null ? const Color(0xFF294549) : Colors.white,
+          color: currentValue != null
+              ? const Color(0xFF4E7F90)
+              : const Color(0xFFE0E8E8),
           width: 1,
         ),
       ),
@@ -458,28 +579,81 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
         child: DropdownButton<String>(
           value: currentValue,
           isExpanded: true,
-          dropdownColor: const Color(0xFF294549),
+          isDense: true,
+          menuMaxHeight: 350,
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: Colors.white,
           hint: Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(
+              color: Color(0xFF4E7F90),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF90C2B7), size: 20),
-          style: const TextStyle(color: Colors.white, fontSize: 12),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Color(0xFF4E7F90),
+            size: 22,
+          ),
+          selectedItemBuilder: (context) {
+            return [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'ทั้งหมด',
+                  style: const TextStyle(
+                    color: Color(0xFF294549),
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              ...items.map(
+                    (val) => Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    val,
+                    style: const TextStyle(
+                      color: Color(0xFF294549),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ];
+          },
           onChanged: onChanged,
           items: [
-            DropdownMenuItem<String>(
+            const DropdownMenuItem<String>(
               value: null,
-              child: Text('ทั้งหมด ($label)', style: const TextStyle(color: Colors.white)),
-            ),
-            ...items.map((val) => DropdownMenuItem<String>(
-              value: val,
               child: Text(
-                val,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white),
+                'ทั้งหมด',
+                style: TextStyle(
+                  color: Color(0xFF294549),
+                  fontSize: 13,
+                ),
               ),
-            )),
+            ),
+            ...items.map(
+                  (val) => DropdownMenuItem<String>(
+                value: val,
+                child: Text(
+                  val,
+                  style: const TextStyle(
+                    color: Color(0xFF294549),
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
           ],
         ),
       ),

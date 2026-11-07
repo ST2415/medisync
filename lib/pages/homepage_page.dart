@@ -25,6 +25,11 @@ class _HomePageState extends State<HomePage> {
   int lunchCount = 0;
   int dinnerCount = 0;
 
+  // รายการยาแยกตามช่วงเวลา
+  List<Map<String, dynamic>> morningMedicines = [];
+  List<Map<String, dynamic>> lunchMedicines = [];
+  List<Map<String, dynamic>> dinnerMedicines = [];
+
   // URL รูปภาพของยาแต่ละช่วงเวลา
   String? morningImage;
   String? lunchImage;
@@ -90,99 +95,85 @@ class _HomePageState extends State<HomePage> {
       final List<dynamic> schedules =
       await _homeService.fetchTodaySchedules(targetUserId);
 
-      if (mounted) {
-        int mCount = 0;
-        int lCount = 0;
-        int dCount = 0;
-        String? mImg;
-        String? lImg;
-        String? dImg;
-        String firstMorningMed = "ไม่มีรายการยา";
-        String firstLunchMed = "ไม่มีรายการยา";
-        String firstDinnerMed = "ไม่มีรายการยา";
-        int firstMorningDosage = 0;
-        String? firstMorningScheduleId;
-        String? firstMorningLogId;
-        bool firstMorningTaken = false;
+      if (!mounted) return;
 
-        for (var item in schedules) {
-          final String timeToTake = (item['time_to_take'] ??
-              item['time'] ??
-              item['meal_time'] ??
-              '')
-              .toString();
+      List<Map<String, dynamic>> mList = [];
+      List<Map<String, dynamic>> lList = [];
+      List<Map<String, dynamic>> dList = [];
 
-          String? rawImg =
-              item['image_url'] ?? item['image'] ?? item['picture'];
-          if (rawImg != null &&
-              rawImg.isNotEmpty &&
-              !rawImg.startsWith('http')) {
-            rawImg =
-            '${HomeService.baseUrl}${(rawImg.startsWith('/') ? '' : '/')}$rawImg';
-          }
+      for (var item in schedules) {
+        final String timeToTake = (
+            item['time_to_take'] ??
+                item['time'] ??
+                item['meal_time'] ??
+                ''
+        ).toString();
 
-          final int dosage = int.tryParse(
-              (item['dosage_amount'] ?? item['dosage'] ?? 1).toString()) ??
-              1;
+        String? rawImg = (
+            item['image_url'] ??
+                item['image'] ??
+                item['picture']
+        )?.toString();
 
-          final String medName = (item['trade_name'] ??
-              item['medicine_name'] ??
-              item['name'] ??
-              (item['tpu_code'] != null
-                  ? 'รหัสยา TPU: ${item['tpu_code']}'
-                  : 'ไม่ระบุชื่อยา'))
-              .toString();
-
-          if (timeToTake.contains('เช้า')) {
-            mCount += dosage;
-            mImg ??= rawImg;
-
-            if (firstMorningMed == "ไม่มีรายการยา") {
-              firstMorningScheduleId = item['schedule_id']?.toString();
-              firstMorningLogId =
-                  item['log_id']?.toString() ?? item['logId']?.toString();
-              firstMorningMed = medName;
-              firstMorningDosage = dosage;
-              firstMorningTaken = item['is_taken'] == true ||
-                  item['is_taken'] == 1 ||
-                  item['status'] == 'taken' ||
-                  item['status'] == 'ทานแล้ว' ||
-                  item['status'] == 1;
-            }
-          } else if (timeToTake.contains('กลางวัน')) {
-            lCount += dosage;
-            lImg ??= rawImg;
-            if (firstLunchMed == "ไม่มีรายการยา") {
-              firstLunchMed = medName;
-            }
-          } else if (timeToTake.contains('เย็น')) {
-            dCount += dosage;
-            dImg ??= rawImg;
-            if (firstDinnerMed == "ไม่มีรายการยา") {
-              firstDinnerMed = medName;
-            }
-          }
+        if (rawImg != null &&
+            rawImg.isNotEmpty &&
+            !rawImg.startsWith('http')) {
+          rawImg =
+          '${HomeService.baseUrl}${rawImg.startsWith('/') ? '' : '/'}$rawImg';
         }
 
-        setState(() {
-          userName = data['userName'] ?? userName;
-          morningCount = mCount;
-          lunchCount = lCount;
-          dinnerCount = dCount;
-          morningImage = mImg;
-          lunchImage = lImg;
-          dinnerImage = dImg;
-          currentScheduleId = firstMorningScheduleId;
-          currentLogId = firstMorningLogId;
-          currentMedicineName = firstMorningMed;
-          lunchMedicineName = firstLunchMed;
-          dinnerMedicineName = firstDinnerMed;
-          currentDosage = firstMorningDosage;
-          isTaken = firstMorningTaken;
-          isLoading = false;
-        });
+        final int dosage = int.tryParse(
+          (item['dosage_amount'] ?? item['dosage'] ?? 1).toString(),
+        ) ?? 1;
+
+        final String medName = (
+            item['trade_name'] ??
+                item['medicine_name'] ??
+                item['name'] ??
+                (item['tpu_code'] != null
+                    ? 'รหัสยา TPU: ${item['tpu_code']}'
+                    : 'ไม่ระบุชื่อยา')
+        ).toString();
+
+        // สร้างข้อมูลยาแต่ละรายการแยกจากกัน
+        final Map<String, dynamic> medicine = {
+          'schedule_id': item['schedule_id']?.toString(),
+          'log_id': item['log_id']?.toString(),
+          'medicine_name': medName,
+          'dosage': dosage,
+          'image_url': rawImg,
+          'is_taken': item['is_taken'] == true ||
+              item['is_taken'] == 1 ||
+              item['is_taken'] == '1' ||
+              item['status'] == 'taken' ||
+              item['status'] == 'ทานแล้ว',
+        };
+
+        if (timeToTake.contains('เช้า')) {
+          mList.add(medicine);
+        } else if (timeToTake.contains('กลางวัน')) {
+          lList.add(medicine);
+        } else if (timeToTake.contains('เย็น')) {
+          dList.add(medicine);
+        }
       }
+
+      setState(() {
+        userName = data['userName'] ?? userName;
+
+        morningMedicines = mList;
+        lunchMedicines = lList;
+        dinnerMedicines = dList;
+
+        isLoading = false;
+      });
+
+      debugPrint('Morning Medicines: ${mList.length}');
+      debugPrint('Lunch Medicines: ${lList.length}');
+      debugPrint('Dinner Medicines: ${dList.length}');
     } catch (e) {
+      debugPrint('Dashboard Error: $e');
+
       if (mounted) {
         setState(() {
           userName = "ข้อมูลล้มเหลว";
@@ -605,11 +596,7 @@ class _HomePageState extends State<HomePage> {
                           _buildMealSection(
                             title: 'ตอนเช้า',
                             defaultTime: '08:00 น.',
-                            medicineName: currentMedicineName,
-                            dosageCount: morningCount > 0 ? morningCount : currentDosage,
-                            imageUrl: morningImage,
-                            isDone: isTaken,
-                            onTapToggle: _toggleTakeMedicine,
+                            medicines: morningMedicines,
                           ),
 
                           const SizedBox(height: 14),
@@ -618,11 +605,7 @@ class _HomePageState extends State<HomePage> {
                           _buildMealSection(
                             title: 'ตอนกลางวัน',
                             defaultTime: '12:00 น.',
-                            medicineName: lunchMedicineName,
-                            dosageCount: lunchCount,
-                            imageUrl: lunchImage,
-                            isDone: lunchCount > 0 && isTaken,
-                            onTapToggle: () {},
+                            medicines: lunchMedicines,
                           ),
 
                           const SizedBox(height: 14),
@@ -631,11 +614,7 @@ class _HomePageState extends State<HomePage> {
                           _buildMealSection(
                             title: 'ตอนเย็น',
                             defaultTime: '18:00 น.',
-                            medicineName: dinnerMedicineName,
-                            dosageCount: dinnerCount,
-                            imageUrl: dinnerImage,
-                            isDone: dinnerCount > 0 && isTaken,
-                            onTapToggle: () {},
+                            medicines: dinnerMedicines,
                           ),
 
                           const SizedBox(height: 24),
@@ -967,18 +946,12 @@ class _HomePageState extends State<HomePage> {
   Widget _buildMealSection({
     required String title,
     required String defaultTime,
-    required String medicineName,
-    required int dosageCount,
-    required String? imageUrl,
-    required bool isDone,
-    required VoidCallback onTapToggle,
+    required List<Map<String, dynamic>> medicines,
   }) {
-    final bool hasMedicine = medicineName.trim().isNotEmpty && medicineName != "ไม่มีรายการยา";
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // หัวข้อช่วงเวลา (เช้า / กลางวัน / เย็น)
+        // หัวข้อช่วงเวลา
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 6),
           child: Row(
@@ -1004,123 +977,207 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
 
-        // กล่องแสดงผล: ถ้ามียา แสดงการ์ดยา | ถ้าไม่มียา แสดงข้อความว่าไม่มีรายการยา
-        hasMedicine
-            ? Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            // เพิ่มเส้นขอบสีเขียวเข้มบางๆ เมื่อกินยาแล้ว (หรือเส้นขอบขาวนุ่มๆ)
-            border: Border.all(
-              color: isDone ? const Color(0xFF90C2B7) : Colors.white,
-              width: 1.5,
+        // ถ้าไม่มีรายการยา
+        if (medicines.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 20,
             ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x14000000), // เพิ่มเงาให้นุ่มและมีมิติลอยตัวขึ้น
-                blurRadius: 10,
-                offset: Offset(0, 3),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.black12,
+                width: 1,
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // รูปภาพยา (ใช้พื้นหลังสีเขียวเข้มเดิม ตัดกับสีขาวได้สวยมาก)
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF294549),
-                  borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: Color(0xFF294549),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: imageUrl != null && imageUrl.trim().isNotEmpty
-                    ? Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.medication_rounded,
-                    color: Color(0xFF90C2B7),
-                    size: 28,
+                SizedBox(width: 10),
+                Text(
+                  'ไม่มีรายการยา',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF294549),
+                    fontWeight: FontWeight.w500,
                   ),
-                )
-                    : const Icon(
-                  Icons.medication_rounded,
-                  color: Color(0xFF90C2B7),
-                  size: 28,
                 ),
-              ),
-              const SizedBox(width: 14),
+              ],
+            ),
+          )
+        else
+        // วนสร้างการ์ดตามจำนวนยา
+          ...medicines.map((medicine) {
+            final String medicineName =
+                medicine['medicine_name'] ?? 'ไม่ระบุชื่อยา';
 
-              // รายละเอียดตัวยา
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      medicineName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF294549),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            final int dosage = medicine['dosage'] ?? 1;
+
+            final String? imageUrl = medicine['image_url'];
+
+            final bool isDone = medicine['is_taken'] == true;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDone
+                        ? const Color(0xFF90C2B7)
+                        : Colors.white,
+                    width: 1.5,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 3),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'รับประทาน $dosageCount เม็ด (หลังอาหาร)',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF4E7F90),
-                        fontWeight: FontWeight.w600,
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF294549),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: imageUrl != null &&
+                          imageUrl.trim().isNotEmpty
+                          ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                        const Icon(
+                          Icons.medication_rounded,
+                          color: Color(0xFF90C2B7),
+                          size: 28,
+                        ),
+                      )
+                          : const Icon(
+                        Icons.medication_rounded,
+                        color: Color(0xFF90C2B7),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            medicineName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF294549),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'รับประทาน $dosage เม็ด (หลังอาหาร)',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF4E7F90),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    InkWell(
+                      onTap: () =>
+                          _toggleTakeMedicineItem(medicine),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          isDone
+                              ? Icons.check_circle_rounded
+                              : Icons.radio_button_unchecked,
+                          color: isDone
+                              ? const Color(0xFF294549)
+                              : Colors.black38,
+                          size: 30,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-
-              // ปุ่มสถานะติ๊กถูก
-              InkWell(
-                onTap: onTapToggle,
-                borderRadius: BorderRadius.circular(24),
-                child: Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: Icon(
-                    isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
-                    color: isDone ? const Color(0xFF294549) : Colors.black38,
-                    size: 30,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        )
-            : Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.black12, width: 1),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline_rounded, size: 20, color: Color(0xFF294549)),
-              SizedBox(width: 10),
-              Text(
-                'ไม่มีรายการยา',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF294549),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
+            );
+          }),
       ],
     );
+  }
+
+  Future<void> _toggleTakeMedicineItem(
+      Map<String, dynamic> medicine,
+      ) async {
+    final String? scheduleId = medicine['schedule_id']?.toString();
+
+    if (scheduleId == null || scheduleId.isEmpty) {
+      return;
+    }
+
+    final bool isCurrentlyTaken = medicine['is_taken'] == true;
+
+    try {
+      if (!isCurrentlyTaken) {
+        final newLogId = await _homeService.addMedicationLog(
+          userId: 16,
+          scheduleId: scheduleId,
+          status: 'taken',
+        );
+
+        if (!mounted) return;
+
+        if (newLogId != null) {
+          setState(() {
+            medicine['is_taken'] = true;
+            medicine['log_id'] = newLogId.toString();
+          });
+        }
+      } else {
+        final logId = medicine['log_id']?.toString();
+
+        if (logId != null && logId.isNotEmpty) {
+          await _homeService.deleteMedicationLog(logId);
+        }
+
+        if (!mounted) return;
+
+        setState(() {
+          medicine['is_taken'] = false;
+          medicine['log_id'] = null;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('เปลี่ยนสถานะไม่สำเร็จ: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }
