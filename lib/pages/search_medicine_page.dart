@@ -36,7 +36,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
     super.dispose();
   }
 
-  // ดึงรายการยาจาก API (คงการทำงานเดิมไว้ทั้งหมด)
+  // ดึงรายการยาจาก API
   Future<void> _fetchMedicines([String query = '']) async {
     setState(() {
       isLoading = true;
@@ -83,7 +83,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
       backgroundColor: const Color(0xFFF7F9FA),
       body: Column(
         children: [
-          // Header Banner สไตล์เดียวก้องกับ homepage_page.dart
+          // Header Banner
           Container(
             padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 20),
             decoration: const BoxDecoration(
@@ -105,12 +105,6 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
               children: [
                 const Row(
                   children: [
-                    Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF90C2B7),
-                      size: 28,
-                    ),
-                    SizedBox(width: 8),
                     Text(
                       'ค้นหายาของคุณ',
                       style: TextStyle(
@@ -121,16 +115,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'ค้นหาตามชื่อยา หรือ กลุ่มอาการ',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF90C2B7),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
                 // ช่องค้นหายา (Search TextField)
                 Container(
@@ -153,7 +138,7 @@ class _SearchMedicinePageState extends State<SearchMedicinePage> {
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: const InputDecoration(
-                      hintText: 'พิมพ์ชื่อยา เช่น พาราเซตามอล...',
+                      hintText: 'พิมพ์ชื่อยา หรือ กลุ่มอาการ',
                       hintStyle:
                           TextStyle(color: Colors.black38, fontSize: 14),
                       prefixIcon: Icon(
