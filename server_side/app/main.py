@@ -502,3 +502,30 @@ def create_medication_log(log: MedicationLogRequest):
     finally:
         conn.close()
 
+@app.get("/users/{user_id}/medication-history")
+def get_medication_history(user_id: int):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # ดึงประวัติการกินยาของผู้ใช้ พร้อมรายละเอียดชื่อยาและเวลา
+            sql = """
+                SELECT 
+                    ml.log_id,
+                    ml.schedule_id,
+                    ml.action_time,
+                    ml.status,
+                    ml.side_effect,
+                    s.time_to_take,
+                    s.dosage_amount,
+                    m.trade_name
+                FROM medication_log ml
+                JOIN schedules s ON ml.schedule_id = s.schedule_id
+                JOIN medicines m ON s.tpu_code = m.tpu_code
+                WHERE s.user_id = %s
+                ORDER BY ml.action_time DESC;
+            """
+            cursor.execute(sql, (user_id,))
+            history_logs = cursor.fetchall()
+            return history_logs
+    finally:
+        conn.close()

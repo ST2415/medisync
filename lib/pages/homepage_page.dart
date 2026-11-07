@@ -17,6 +17,9 @@ class _HomePageState extends State<HomePage> {
   bool isLoading = true;
   String userName = "กำลังโหลด...";
 
+  // 1. เพิ่มตัวแปรเก็บวันที่ที่เลือก (ค่าเริ่มต้นเป็นวันนี้)
+  DateTime selectedDate = DateTime.now();
+
   // จำนวนยาแต่ละช่วงเวลา
   int morningCount = 0;
   int lunchCount = 0;
@@ -29,7 +32,7 @@ class _HomePageState extends State<HomePage> {
 
   // ข้อมูลยาช่วงเวลาดึงจากเซิร์ฟเวอร์
   String? currentScheduleId;
-  String? currentLogId; // เก็บ log_id สำหรับการอัปเดต/ลบรายการกินยา
+  String? currentLogId;
   String currentMedicineName = "ไม่มีรายการยา";
   String lunchMedicineName = "ไม่มีรายการยา";
   String dinnerMedicineName = "ไม่มีรายการยา";
@@ -55,41 +58,26 @@ class _HomePageState extends State<HomePage> {
     return days[weekday - 1];
   }
 
-  // วันที่จริงภาษาไทย พร้อมชื่อวัน
-  String _getFormattedTodayDate() {
-    final now = DateTime.now();
+  // 2. ปรับให้แสดงวันที่ภาษาไทยตาม selectedDate ที่เลือก
+  String _getFormattedDate(DateTime date) {
     const days = [
-      'วันจันทร์',
-      'วันอังคาร',
-      'วันพุธ',
-      'วันพฤหัสบดี',
-      'วันศุกร์',
-      'วันเสาร์',
-      'วันอาทิตย์'
+      'วันจันทร์', 'วันอังคาร', 'วันพุธ', 'วันพฤหัสบดี',
+      'วันศุกร์', 'วันเสาร์', 'วันอาทิตย์'
     ];
     const months = [
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม'
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
+      'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
+      'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
     ];
-    final dayName = days[now.weekday - 1];
-    final dayNum = now.day;
-    final monthName = months[now.month - 1];
-    final buddhistYear = now.year + 543;
+    final dayName = days[date.weekday - 1];
+    final dayNum = date.day;
+    final monthName = months[date.month - 1];
+    final buddhistYear = date.year + 543;
 
     return '$dayNameที่ $dayNum $monthName $buddhistYear';
   }
 
-  // ดึงข้อมูลผ่าน HomeService (ดึงเฉพาะข้อมูลจริงจากเซิร์ฟเวอร์เท่านั้น)
+  // 3. ฟังก์ชันดึงข้อมูลแดชบอร์ดตามวันที่เลือก
   Future<void> _fetchDashboardData() async {
     setState(() {
       isLoading = true;
@@ -99,8 +87,8 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final data = await _homeService.fetchDashboardData(targetUserId);
-      final List<dynamic> todaySchedules =
-          await _homeService.fetchTodaySchedules(targetUserId);
+      final List<dynamic> schedules =
+      await _homeService.fetchTodaySchedules(targetUserId);
 
       if (mounted) {
         int mCount = 0;
@@ -117,11 +105,11 @@ class _HomePageState extends State<HomePage> {
         String? firstMorningLogId;
         bool firstMorningTaken = false;
 
-        for (var item in todaySchedules) {
+        for (var item in schedules) {
           final String timeToTake = (item['time_to_take'] ??
-                  item['time'] ??
-                  item['meal_time'] ??
-                  '')
+              item['time'] ??
+              item['meal_time'] ??
+              '')
               .toString();
 
           String? rawImg =
@@ -130,19 +118,19 @@ class _HomePageState extends State<HomePage> {
               rawImg.isNotEmpty &&
               !rawImg.startsWith('http')) {
             rawImg =
-                '${HomeService.baseUrl}${(rawImg.startsWith('/') ? '' : '/')}$rawImg';
+            '${HomeService.baseUrl}${(rawImg.startsWith('/') ? '' : '/')}$rawImg';
           }
 
           final int dosage = int.tryParse(
-                  (item['dosage_amount'] ?? item['dosage'] ?? 1).toString()) ??
+              (item['dosage_amount'] ?? item['dosage'] ?? 1).toString()) ??
               1;
 
           final String medName = (item['trade_name'] ??
-                  item['medicine_name'] ??
-                  item['name'] ??
-                  (item['tpu_code'] != null
-                      ? 'รหัสยา TPU: ${item['tpu_code']}'
-                      : 'ไม่ระบุชื่อยา'))
+              item['medicine_name'] ??
+              item['name'] ??
+              (item['tpu_code'] != null
+                  ? 'รหัสยา TPU: ${item['tpu_code']}'
+                  : 'ไม่ระบุชื่อยา'))
               .toString();
 
           if (timeToTake.contains('เช้า')) {
@@ -158,6 +146,7 @@ class _HomePageState extends State<HomePage> {
               firstMorningTaken = item['is_taken'] == true ||
                   item['is_taken'] == 1 ||
                   item['status'] == 'taken' ||
+                  item['status'] == 'ทานแล้ว' ||
                   item['status'] == 1;
             }
           } else if (timeToTake.contains('กลางวัน')) {
@@ -174,9 +163,6 @@ class _HomePageState extends State<HomePage> {
             }
           }
         }
-
-        debugPrint('Morning Schedule ID: $firstMorningScheduleId');
-        debugPrint('Morning Log ID: $firstMorningLogId');
 
         setState(() {
           userName = data['userName'] ?? userName;
@@ -206,12 +192,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // ฟังก์ชันสลับสถานะการกินยา พร้อม Alert ยืนยันเมื่อต้องการลบ/ยกเลิก
   Future<void> _toggleTakeMedicine() async {
-    debugPrint('กดปุ่มกินยาแล้ว');
-    debugPrint('scheduleId: $currentScheduleId');
-    debugPrint('logId: $currentLogId');
-
     if (!isTaken) {
       try {
         final newLogId = await _homeService.addMedicationLog(
@@ -235,13 +216,6 @@ class _HomePageState extends State<HomePage> {
               behavior: SnackBarBehavior.floating,
             ),
           );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไม่สามารถบันทึกข้อมูลการกินยาได้'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
         }
       } catch (e) {
         if (!mounted) return;
@@ -255,7 +229,6 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    // กดเพื่อยืนยันลบ/ยกเลิกสถานะการกินยา (DELETE)
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -331,7 +304,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // กรอกบันทึกอาการ
   void _showSymptomDialog() {
     final symptomController = TextEditingController();
 
@@ -371,7 +343,7 @@ class _HomePageState extends State<HomePage> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide:
-                    const BorderSide(color: Color(0xFF294549), width: 1.5),
+                const BorderSide(color: Color(0xFF294549), width: 1.5),
               ),
             ),
           ),
@@ -410,339 +382,348 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final weekDates = _getCurrentWeekDates();
-    final now = DateTime.now();
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FA),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF294549),
-              ),
-            )
+        child: CircularProgressIndicator(
+          color: Color(0xFF294549),
+        ),
+      )
           : RefreshIndicator(
-              color: const Color(0xFF294549),
-              onRefresh: _fetchDashboardData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
+        color: const Color(0xFF294549),
+        onRefresh: _fetchDashboardData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ส่วน Header และ Calendar Bar
+              Container(
+                padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 20),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF294549),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top Header Bar ขึ้นสุดติดขอบบน (รวมพื้นที่ Status Bar)
-                    Container(
-                      padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 20),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF294549),
-                        borderRadius: BorderRadius.only(
-                          bottomLeft: Radius.circular(24),
-                          bottomRight: Radius.circular(24),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                                color: const Color(0xFF90C2B7), width: 2),
+                          ),
+                          child: const CircleAvatar(
+                            radius: 22,
+                            backgroundColor: Color(0xFF4E7F90),
+                            child: Icon(
+                              Icons.person_rounded,
+                              size: 28,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header Title Row (โชว์ไอคอน User ริมซ้ายสุด)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: const Color(0xFF90C2B7), width: 2),
-                                ),
-                                child: const CircleAvatar(
-                                  radius: 22,
-                                  backgroundColor: Color(0xFF4E7F90),
-                                  child: Icon(
-                                    Icons.person_rounded,
-                                    size: 28,
-                                    color: Colors.white,
-                                  ),
+                              const Text(
+                                'สวัสดี !',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Row(
-                                      children: [
-                                        Text(
-                                          'สวัสดี !',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'คุณ$userName',
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        color: Color(0xFF90C2B7),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _getFormattedTodayDate(),
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.white70,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
+                              const SizedBox(height: 2),
+                              Text(
+                                'คุณ$userName',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Color(0xFF90C2B7),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              // แสดงวันที่ตามตัวแปร selectedDate
+                              Text(
+                                _getFormattedDate(selectedDate),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
-
-                          // Weekly Calendar Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: weekDates.map((date) {
-                              final isToday = date.day == now.day &&
-                                  date.month == now.month &&
-                                  date.year == now.year;
-
-                              return Column(
-                                children: [
-                                  Text(
-                                    _getDayShortName(date.weekday),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isToday
-                                          ? const Color(0xFF90C2B7)
-                                          : Colors.white70,
-                                      fontWeight: isToday
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    width: 38,
-                                    height: 38,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isToday
-                                          ? const Color(0xFF90C2B7)
-                                          : Colors.black26,
-                                      border: isToday
-                                          ? Border.all(
-                                              color: Colors.white,
-                                              width: 2,
-                                            )
-                                          : null,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '${date.day}',
-                                        style: TextStyle(
-                                          color: isToday
-                                              ? const Color(0xFF294549)
-                                              : Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-
                     const SizedBox(height: 20),
 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // ยาวันนี้ Header
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    // 4. แถบปฏิทิน 7 วัน ที่สามารถแตะเลือกวันได้
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: weekDates.map((date) {
+                        // เช็กว่าเป็นวันที่กำลังเลือกอยู่หรือไม่
+                        final isSelected = date.day == selectedDate.day &&
+                            date.month == selectedDate.month &&
+                            date.year == selectedDate.year;
+
+                        return MouseRegion(
+                            cursor: SystemMouseCursors.click, // เปลี่ยนเคอร์เซอร์เป็นรูปมือชี้เมื่อ Hover
+                            child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedDate = date; // อัปเดตวันที่เลือก
+                            });
+                            _fetchDashboardData(); // รีเฟรชข้อมูลตามวันที่
+                          },
+                          behavior: HitTestBehavior.opaque,
+                          child: Column(
                             children: [
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.medication_liquid_rounded,
-                                    color: Color(0xFF294549),
-                                    size: 22,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'ยาที่ต้องกินวันนี้',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF294549),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              IconButton(
-                                onPressed: _showSymptomDialog,
-                                icon: const Icon(
-                                  Icons.edit_note_rounded,
-                                  color: Color(0xFF294549),
-                                ),
-                                tooltip: 'บันทึกอาการ',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          // ตารางยาทั้งหมด 3 เวลาเรียงยาวลงมา (ข้อมูลดึงจากเซิร์ฟเวอร์เท่านั้น)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFBBD7DA),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              children: [
-                                _buildMealTimeRow(
-                                  mealName: 'ตอนเช้า (หลังอาหาร)',
-                                  timeStr: '08:00',
-                                  medicineName: currentMedicineName,
-                                  dosageCount: morningCount > 0
-                                      ? morningCount
-                                      : currentDosage,
-                                  imageUrl: morningImage,
-                                  isDone: isTaken,
-                                  onTapToggle: _toggleTakeMedicine,
-                                ),
-                                const Divider(
-                                    height: 24, color: Colors.white38),
-                                _buildMealTimeRow(
-                                  mealName: 'ตอนกลางวัน (หลังอาหาร)',
-                                  timeStr: '12:00',
-                                  medicineName: lunchMedicineName,
-                                  dosageCount: lunchCount,
-                                  imageUrl: lunchImage,
-                                  isDone: lunchCount > 0 && isTaken,
-                                  onTapToggle: () {},
-                                ),
-                                const Divider(
-                                    height: 24, color: Colors.white38),
-                                _buildMealTimeRow(
-                                  mealName: 'ตอนเย็น (หลังอาหาร)',
-                                  timeStr: '18:00',
-                                  medicineName: dinnerMedicineName,
-                                  dosageCount: dinnerCount,
-                                  imageUrl: dinnerImage,
-                                  isDone: dinnerCount > 0 && isTaken,
-                                  onTapToggle: () {},
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // Navigation Buttons (เพิ่มรายการยา / ดูตารางทั้งหมด)
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const SearchMedicinePage(),
-                                      ),
-                                    );
-                                    _fetchDashboardData();
-                                  },
-                                  icon: const Icon(
-                                    Icons.add_rounded,
-                                    color: Color(0xFF294549),
-                                    size: 20,
-                                  ),
-                                  label: const Text(
-                                    'เพิ่มรายการยา',
-                                    style: TextStyle(
-                                      color: Color(0xFF294549),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    side: const BorderSide(
-                                        color: Color(0xFF294549), width: 1.5),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
-                                  ),
+                              Text(
+                                _getDayShortName(date.weekday),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isSelected
+                                      ? const Color(0xFF90C2B7)
+                                      : Colors.white70,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const HistoryTableListPage(),
-                                      ),
-                                    );
-                                    _fetchDashboardData();
-                                  },
-                                  icon: const Icon(
-                                    Icons.calendar_month_rounded,
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected
+                                      ? const Color(0xFF90C2B7)
+                                      : Colors.black26,
+                                  border: isSelected
+                                      ? Border.all(
                                     color: Colors.white,
-                                    size: 18,
-                                  ),
-                                  label: const Text(
-                                    'ดูตารางยาทั้งหมด',
+                                    width: 2,
+                                  )
+                                      : null,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${date.day}',
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: isSelected
+                                          ? const Color(0xFF294549)
+                                          : Colors.white,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                      fontSize: 14,
                                     ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF294549),
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
               ),
-            ),
-      // Bottom Navigation Bar สไตล์ลอย
+
+              const SizedBox(height: 20),
+
+              // รายการยาประจำวัน
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.medication_liquid_rounded,
+                              color: Color(0xFF294549),
+                              size: 22,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              selectedDate.day == DateTime.now().day &&
+                                  selectedDate.month == DateTime.now().month &&
+                                  selectedDate.year == DateTime.now().year
+                                  ? 'ยาที่ต้องกินวันนี้'
+                                  : 'ยาที่ต้องกิน (วัน${_getDayShortName(selectedDate.weekday)}ที่ ${selectedDate.day})',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF294549),
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          onPressed: _showSymptomDialog,
+                          icon: const Icon(
+                            Icons.edit_note_rounded,
+                            color: Color(0xFF294549),
+                          ),
+                          tooltip: 'บันทึกอาการ',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFBBD7DA),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildMealTimeRow(
+                            mealName: 'ตอนเช้า (หลังอาหาร)',
+                            timeStr: '08:00',
+                            medicineName: currentMedicineName,
+                            dosageCount: morningCount > 0
+                                ? morningCount
+                                : currentDosage,
+                            imageUrl: morningImage,
+                            isDone: isTaken,
+                            onTapToggle: _toggleTakeMedicine,
+                          ),
+                          const Divider(
+                              height: 24, color: Colors.white38),
+                          _buildMealTimeRow(
+                            mealName: 'ตอนกลางวัน (หลังอาหาร)',
+                            timeStr: '12:00',
+                            medicineName: lunchMedicineName,
+                            dosageCount: lunchCount,
+                            imageUrl: lunchImage,
+                            isDone: lunchCount > 0 && isTaken,
+                            onTapToggle: () {},
+                          ),
+                          const Divider(
+                              height: 24, color: Colors.white38),
+                          _buildMealTimeRow(
+                            mealName: 'ตอนเย็น (หลังอาหาร)',
+                            timeStr: '18:00',
+                            medicineName: dinnerMedicineName,
+                            dosageCount: dinnerCount,
+                            imageUrl: dinnerImage,
+                            isDone: dinnerCount > 0 && isTaken,
+                            onTapToggle: () {},
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                  const SearchMedicinePage(),
+                                ),
+                              );
+                              _fetchDashboardData();
+                            },
+                            icon: const Icon(
+                              Icons.add_rounded,
+                              color: Color(0xFF294549),
+                              size: 20,
+                            ),
+                            label: const Text(
+                              'เพิ่มรายการยา',
+                              style: TextStyle(
+                                color: Color(0xFF294549),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(
+                                  color: Color(0xFF294549), width: 1.5),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                  const HistoryTableListPage(),
+                                ),
+                              );
+                              _fetchDashboardData();
+                            },
+                            icon: const Icon(
+                              Icons.calendar_month_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            label: const Text(
+                              'ดูตารางยาทั้งหมด',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF294549),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       bottomNavigationBar: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -808,24 +789,13 @@ class _HomePageState extends State<HomePage> {
                 _fetchDashboardData();
               },
             ),
-            // Floating menu button ด้านขวาตามภาพตัวอย่าง (ปิดการใช้งานตามที่ขอ)
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF90C2B7),
-                shape: BoxShape.circle,
-              ),
-              child: const IconButton(
-                onPressed: null, // ไม่มีฟังก์ชันการใช้งาน
-                icon: Icon(
-                  Icons.menu_rounded,
-                  color: Color(0xFF294549),
-                  size: 22,
-                ),
-                constraints: BoxConstraints(
-                  minWidth: 42,
-                  minHeight: 42,
-                ),
-                padding: EdgeInsets.zero,
+            // ไอคอนผู้ใช้ (User) ท้าย Navbar - ไม่มีพื้นหลัง และกดไม่ได้
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Icon(
+                Icons.person_rounded, // หรือ Icons.person_outline_rounded
+                color: Colors.white60, // สีขาวจางๆ สไตล์เดียวกับแท็บอื่นที่ไม่ได้เลือก
+                size: 24,
               ),
             ),
           ],
@@ -857,34 +827,34 @@ class _HomePageState extends State<HomePage> {
             clipBehavior: Clip.antiAlias,
             child: imageUrl != null && imageUrl.trim().isNotEmpty
                 ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFF90C2B7),
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.medication_rounded,
-                        color: Color(0xFF90C2B7),
-                        size: 26,
-                      );
-                    },
-                  )
-                : const Icon(
-                    Icons.medication_rounded,
-                    color: Color(0xFF90C2B7),
-                    size: 26,
+              imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF90C2B7),
+                    ),
                   ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const Icon(
+                  Icons.medication_rounded,
+                  color: Color(0xFF90C2B7),
+                  size: 26,
+                );
+              },
+            )
+                : const Icon(
+              Icons.medication_rounded,
+              color: Color(0xFF90C2B7),
+              size: 26,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -959,9 +929,9 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: isSelected
             ? BoxDecoration(
-                color: const Color(0xFF4E7F90),
-                borderRadius: BorderRadius.circular(20),
-              )
+          color: const Color(0xFF4E7F90),
+          borderRadius: BorderRadius.circular(20),
+        )
             : null,
         child: Row(
           children: [

@@ -301,3 +301,16 @@ class ApiService {
   }
 }
 
+class HistoryService {
+  // รันใน Android Emulator ใช้ 10.0.2.2 (หากรันผ่านเครื่องจริงให้ใช้ IP วง LAN เดียวกัน)
+  static const String baseUrl = 'http://10.0.2.2:8000';
+
+  static Future<List<dynamic>> fetchMedicationHistory(int userId) async {
+    final response = await http.get(Uri.parse('$baseUrl/users/$userId/medication-history'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('ไม่สามารถโหลดประวัติการกินยาได้');
+    }
+  }
+}

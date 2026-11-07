@@ -510,23 +510,13 @@ class _AppointmentListPageState extends State<AppointmentListPage> {
               onTap: () {},
             ),
             // Floating menu button ด้านขวา
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFF90C2B7),
-                shape: BoxShape.circle,
-              ),
-              child: const IconButton(
-                onPressed: null,
-                icon: Icon(
-                  Icons.menu_rounded,
-                  color: Color(0xFF294549),
-                  size: 22,
-                ),
-                constraints: BoxConstraints(
-                  minWidth: 42,
-                  minHeight: 42,
-                ),
-                padding: EdgeInsets.zero,
+            // ไอคอนผู้ใช้ (User) ท้าย Navbar - ไม่มีพื้นหลัง และกดไม่ได้
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Icon(
+                Icons.person_rounded, // หรือ Icons.person_outline_rounded
+                color: Colors.white60, // สีขาวจางๆ สไตล์เดียวกับแท็บอื่นที่ไม่ได้เลือก
+                size: 24,
               ),
             ),
           ],
