@@ -92,8 +92,19 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final data = await _homeService.fetchDashboardData(targetUserId);
+
+      // แปลงวันที่ที่เลือกให้เป็นรูปแบบ YYYY-MM-DD
+      final String selectedDateString =
+          '${selectedDate.year.toString().padLeft(4, '0')}-'
+          '${selectedDate.month.toString().padLeft(2, '0')}-'
+          '${selectedDate.day.toString().padLeft(2, '0')}';
+
+      // ดึงตารางยาโดยอ้างอิงจากวันที่เลือก
       final List<dynamic> schedules =
-      await _homeService.fetchTodaySchedules(targetUserId);
+      await _homeService.fetchTodaySchedules(
+        targetUserId,
+        date: selectedDateString,
+      );
 
       if (!mounted) return;
 
@@ -149,6 +160,8 @@ class _HomePageState extends State<HomePage> {
               item['status'] == 'ทานแล้ว',
         };
 
+        debugPrint('Medicine: $medName');
+        debugPrint('Time To Take: $timeToTake');
         if (timeToTake.contains('เช้า')) {
           mList.add(medicine);
         } else if (timeToTake.contains('กลางวัน')) {
@@ -183,56 +196,26 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _toggleTakeMedicine() async {
-    if (!isTaken) {
-      try {
-        final newLogId = await _homeService.addMedicationLog(
-          userId: 16,
-          scheduleId: currentScheduleId ?? '',
-          status: 'taken',
-        );
-
-        if (!mounted) return;
-
-        if (newLogId != null) {
-          setState(() {
-            isTaken = true;
-            currentLogId = newLogId;
-          });
-
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('"กินยาแล้ว" เรียบร้อยแล้ว'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('บันทึกไม่สำเร็จ: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    final confirmed = await showDialog<bool>(
+  // ฟังก์ชันแสดง Popup แจ้งเตือนสถานะ
+  void _showStatusDialog({
+    required String title,
+    required String message,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFF294549)),
-            SizedBox(width: 8),
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 10),
             Text(
-              'ยกเลิกรายการกินยา',
-              style: TextStyle(
+              title,
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF294549),
                 fontSize: 18,
@@ -240,15 +223,11 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-        content: const Text(
-          'ต้องการเปลี่ยนสถานะเป็น "ยังไม่ได้กินยา" ใช่หรือไม่?',
-          style: TextStyle(fontSize: 15, color: Colors.black87),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 15, color: Colors.black87),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('ยกเลิก', style: TextStyle(color: Colors.black54)),
-          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF294549),
@@ -256,43 +235,12 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('ตกลง', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-
-    if (confirmed != true) return;
-
-    try {
-      if (currentLogId != null) {
-        await _homeService.deleteMedicationLog(currentLogId!);
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        isTaken = false;
-        currentLogId = null;
-      });
-
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('เปลี่ยนสถานะเป็น "ยังไม่ได้กินยา" เรียบร้อยแล้ว'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('ยกเลิกรายการไม่สำเร็จ: $e'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 
   void _showSymptomDialog() {
@@ -1138,6 +1086,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     final bool isCurrentlyTaken = medicine['is_taken'] == true;
+    final String medName = medicine['medicine_name'] ?? 'ยาที่เลือก';
 
     try {
       if (!isCurrentlyTaken) {
@@ -1145,6 +1094,7 @@ class _HomePageState extends State<HomePage> {
           userId: 16,
           scheduleId: scheduleId,
           status: 'taken',
+          selectedDate: selectedDate,
         );
 
         if (!mounted) return;
@@ -1154,8 +1104,17 @@ class _HomePageState extends State<HomePage> {
             medicine['is_taken'] = true;
             medicine['log_id'] = newLogId.toString();
           });
+
+          // แสดง Popup แจ้งเตือนกินยาสำเร็จ
+          _showStatusDialog(
+            title: 'บันทึกสำเร็จ',
+            message: 'บันทึกการกินยา "$medName" เรียบร้อยแล้ว',
+            icon: Icons.check_circle_rounded,
+            iconColor: const Color(0xFF90C2B7),
+          );
         }
       } else {
+        // หากต้องการให้ถามยืนยันก่อนยกเลิก สามารถเพิ่มเงื่อนไขได้ตรงนี้
         final logId = medicine['log_id']?.toString();
 
         if (logId != null && logId.isNotEmpty) {
@@ -1168,6 +1127,14 @@ class _HomePageState extends State<HomePage> {
           medicine['is_taken'] = false;
           medicine['log_id'] = null;
         });
+
+        // แสดง Popup แจ้งเตือนยกเลิกสำเร็จ
+        _showStatusDialog(
+          title: 'ยกเลิกสำเร็จ',
+          message: 'เปลี่ยนสถานะ "$medName" เป็นยังไม่ได้กินยาเรียบร้อยแล้ว',
+          icon: Icons.info_rounded,
+          iconColor: const Color(0xFF4E7F90),
+        );
       }
     } catch (e) {
       if (!mounted) return;

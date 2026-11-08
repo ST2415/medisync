@@ -110,11 +110,9 @@ def get_user(schedule_id: str = None, user_id: int = None):
         return dict(schedule)
     
 @app.get("/users/{user_id}/today-schedules")
-def get_today_schedules(user_id: int):
+def get_today_schedules(user_id: int, date: str):
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    today = datetime.now().strftime("%d/%m/%Y")
 
     query = """
         SELECT
@@ -155,9 +153,9 @@ def get_today_schedules(user_id: int):
     """
 
     try:
-        rows = cursor.execute(
+        rows = conn.execute(
             query,
-            (today, today, user_id)
+            (date, date, user_id)
         ).fetchall()
 
         return [dict(row) for row in rows]
@@ -511,7 +509,7 @@ def create_medication_log(log: MedicationLogRequest):
         # ใช้เวลาที่ Flutter ส่งมา หรือใช้เวลาปัจจุบัน
         action_time = (
             log.logged_at or datetime.now()
-        ).strftime("%d/%m/%Y %H:%M")
+        ).strftime("%Y-%m-%d %H:%M:%S")
 
         # บันทึกข้อมูลลงฐานข้อมูล
         conn.execute(

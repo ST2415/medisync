@@ -98,11 +98,20 @@ class HomeService {
   }
 
   // 2. ฟังก์ชันแยกสำหรับดึงรายการยาวันนี้ตาม path /users/user_id/today-schedules
-  Future<List<dynamic>> fetchTodaySchedules(int userId) async {
+  Future<List<dynamic>> fetchTodaySchedules(
+      int userId, {
+        required String date,
+      }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/users/$userId/today-schedules'),
+      final uri = Uri.parse(
+        '$baseUrl/users/$userId/today-schedules',
+      ).replace(
+        queryParameters: {
+          'date': date,
+        },
       );
+
+      final response = await http.get(uri);
 
       debugPrint('Today Schedules Status: ${response.statusCode}');
 
@@ -160,16 +169,29 @@ class HomeService {
     required int userId,
     required String scheduleId,
     required String status,
+    required DateTime selectedDate,
   }) async {
     try {
+      // ใช้วันที่ที่เลือก แต่ใช้เวลาปัจจุบัน
+      final now = DateTime.now();
+
+      final loggedAt = DateTime(
+        selectedDate.year,
+        selectedDate.month,
+        selectedDate.day,
+        now.hour,
+        now.minute,
+        now.second,
+      );
+
       final response = await http.post(
         Uri.parse('$baseUrl/medication_logs'),
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
         body: jsonEncode({
           'user_id': userId,
-          'schedule_id': scheduleId.toString(),
+          'schedule_id': scheduleId,
           'status': status,
-          'logged_at': DateTime.now().toIso8601String(),
+          'logged_at': loggedAt.toIso8601String(),
         }),
       );
 
@@ -178,10 +200,13 @@ class HomeService {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
+
         if (data is Map<String, dynamic>) {
-          return data['log_id']?.toString() ?? data['id']?.toString();
+          return data['log_id']?.toString() ??
+              data['id']?.toString();
         }
       }
+
       return null;
     } catch (e) {
       debugPrint("Error in addMedicationLog: $e");
